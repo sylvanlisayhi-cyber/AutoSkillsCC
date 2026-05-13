@@ -1,0 +1,38 @@
+[
+  {
+    "name": "frontend-design",
+    "description": "高质量前端React/Vue组件开发规范，包含TypeScript类型定义、Tailwind CSS样式、响应式布局和无障碍设计",
+    "keywords": [
+      "frontend",
+      "react",
+      "vue",
+      "angular",
+      "component",
+      "html",
+      "css",
+      "tailwind",
+      "web",
+      "前端",
+      "按钮",
+      "组件",
+      "界面",
+      "页面",
+      "表单",
+      "布局",
+      "ui",
+      "样式"
+    ]
+  },
+  {
+    "name": "ok-person",
+    "description": "当用户说ok人时，回复随机数量的ok",
+    "keywords": [
+      "ok人",
+      "ok的人",
+      "ok-person",
+      "okperson",
+      "你是ok人",
+      "我是ok人"
+    ]
+  }
+]

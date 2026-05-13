@@ -1,0 +1,21 @@
+# SkillRouter state file (user-specific, don't commit)
+.enabled
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Diagnostic / test hooks (not for production)
+hooks/diag.py
+hooks/diag.js
+hooks/diag.sh
+hooks/mini.py
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
