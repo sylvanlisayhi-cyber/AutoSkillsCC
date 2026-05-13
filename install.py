@@ -2,29 +2,29 @@
 """SkillRouter Installer — One command setup for automatic skill routing in Claude Code.
 
 What it does:
-  1. Scans your ~/.claude/skills/ directory
-  2. Generates skills.json (registry of all skills)
-  3. Builds bilingual vector index (optional, if sentence-transformers is installed)
-  4. Writes Claude Code hook configuration to settings.json
-
-Requirements:
-  - Python 3.10+
-  - numpy (pip install numpy)
-  - sentence-transformers (optional: pip install sentence-transformers for local semantic mode)
+  1. Checks for --bare mode in your startup scripts and auto-fixes it
+  2. Scans your ~/.claude/skills/ directory
+  3. Generates skills.json (registry of all skills)
+  4. Builds bilingual vector index (optional)
+  5. Writes Claude Code hook configuration to settings.json
 
 Usage:
   git clone https://github.com/sylvanlisayhi-cyber/SkillRouter.git
   cd SkillRouter
-  pip install numpy
+  pip install -r requirements.txt
   python install.py
   # Restart Claude Code — Done!
 """
-import json, sys, subprocess
+import json, sys, subprocess, os, re, shutil, io
 from pathlib import Path
 
 if sys.version_info < (3, 10):
     print(f'[x] Python 3.10+ required. Your version: {sys.version}')
     sys.exit(1)
+
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 SETTINGS     = Path.home() / '.claude' / 'settings.json'
 HOOK_SCRIPT  = Path(__file__).parent / 'hooks' / 'recommend.py'
@@ -56,6 +56,205 @@ SKILL_DB = {
     'data-analysis':            ('数据分析工作流 — Pandas/NumPy、Matplotlib可视化、统计建模', 'pandas numpy csv analysis visualization matplotlib 数据分析 数据可视化 统计 图表'.split()),
 }
 
+# ── Bare mode auto-detection & fix ──────────────────────────────────────────
+
+BARE_PATTERN = re.compile(r'\s--bare(?=\s|$)', re.IGNORECASE)
+
+def _get_npm_bin():
+    """Get npm global bin directory."""
+    try:
+        result = subprocess.run(
+            ['npm', 'config', 'get', 'prefix'],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            prefix = result.stdout.strip()
+            if sys.platform == 'win32':
+                return Path(prefix)
+            return Path(prefix) / 'bin'
+    except Exception:
+        pass
+    # Fallback defaults
+    if sys.platform == 'win32':
+        return Path(os.environ.get('APPDATA', Path.home() / 'AppData' / 'Roaming')) / 'npm'
+    return Path('/usr/local/bin')
+
+def _scan_files_for_bare(directory, pattern='claude*'):
+    """Scan a directory for files matching pattern that contain --bare."""
+    hits = []
+    if not directory or not directory.is_dir():
+        return hits
+    for f in sorted(directory.iterdir()):
+        if not f.is_file():
+            continue
+        name = f.name.lower()
+        # Match: claude, claude.cmd, claude.ps1, claude-ds, claude-ds.cmd, etc.
+        if not name.startswith('claude'):
+            continue
+        # Skip .ps1 module manifests, only check scripts
+        if f.suffix.lower() not in ('', '.cmd', '.bat', '.ps1', '.sh', '.bash', '.zsh'):
+            continue
+        try:
+            content = f.read_text(encoding='utf-8', errors='replace')
+        except Exception:
+            # Binary file? Skip
+            continue
+        if BARE_PATTERN.search(content):
+            hits.append((f, content))
+    return hits
+
+def _scan_shell_configs():
+    """Scan common shell config files for --bare in aliases."""
+    hits = []
+    configs = []
+    home = Path.home()
+    for rc in ['.bashrc', '.bash_profile', '.bash_aliases', '.zshrc', '.zprofile',
+               '.profile', '.config/fish/config.fish', '.aliases']:
+        p = home / rc
+        if p.is_file():
+            configs.append(p)
+    # Also check /etc for system-wide configs
+    for p in [Path('/etc/bash.bashrc'), Path('/etc/zsh/zshrc')]:
+        if p.is_file():
+            configs.append(p)
+
+    for f in configs:
+        try:
+            content = f.read_text(encoding='utf-8', errors='replace')
+        except Exception:
+            continue
+        # Find lines with claude AND --bare
+        for line in content.splitlines():
+            if 'claude' in line.lower() and BARE_PATTERN.search(line):
+                hits.append((f, line.strip()))
+                break  # One hit per file is enough
+    return hits
+
+def _scan_desktop_shortcuts():
+    """Scan Windows desktop shortcuts for --bare. Returns list of (path, target)."""
+    if sys.platform != 'win32':
+        return []
+    hits = []
+    desktop = Path.home() / 'Desktop'
+    if not desktop.is_dir():
+        # Chinese Windows: 桌面
+        desktop_cn = Path.home() / '桌面'
+        if desktop_cn.is_dir():
+            desktop = desktop_cn
+    if not desktop.is_dir():
+        return hits
+
+    for f in sorted(desktop.iterdir()):
+        if not f.suffix.lower() == '.lnk':
+            continue
+        if 'claude' not in f.name.lower():
+            continue
+        try:
+            import win32com.client
+            shell = win32com.client.Dispatch("WScript.Shell")
+            shortcut = shell.CreateShortcut(str(f))
+            target = shortcut.TargetPath or ''
+            args = shortcut.Arguments or ''
+            combined = f'{target} {args}'
+            if '--bare' in combined:
+                hits.append((f, combined))
+        except Exception:
+            # win32com may not be available, skip
+            pass
+    return hits
+
+def _fix_file(filepath, content=None):
+    """Remove --bare from file content. Returns new content or None if unchanged."""
+    if content is None:
+        try:
+            content = filepath.read_text(encoding='utf-8', errors='replace')
+        except Exception:
+            return None
+    # Replace ' --bare' (with leading space, optional trailing space)
+    new_content = BARE_PATTERN.sub('', content)
+    if new_content != content:
+        return new_content
+    return None
+
+def check_and_fix_bare():
+    """Main entry: scan for bare mode and auto-fix."""
+    print('\n[*] Checking for --bare mode in your startup scripts...')
+
+    npm_bin = _get_npm_bin()
+    print(f'    npm bin dir: {npm_bin}')
+
+    problems = []
+
+    # 1. Scan npm global bin for claude* scripts
+    script_hits = _scan_files_for_bare(npm_bin)
+    for f, content in script_hits:
+        problems.append(('script', f, content))
+
+    # 2. Scan shell configs (Linux/macOS)
+    for f, line in _scan_shell_configs():
+        problems.append(('shell_config', f, line))
+
+    # 3. Scan desktop shortcuts (Windows)
+    for f, target in _scan_desktop_shortcuts():
+        problems.append(('shortcut', f, target))
+
+    if not problems:
+        print('    [v] No --bare found in your startup scripts — good!')
+        return
+
+    # Report findings
+    print(f'\n    [!] Found --bare in {len(problems)} location(s):')
+    for kind, f, detail in problems:
+        if kind == 'script':
+            # Find the line containing --bare
+            for line in detail.splitlines():
+                if '--bare' in line:
+                    print(f'        {f}')
+                    print(f'        → {line.strip()}')
+                    break
+        elif kind == 'shell_config':
+            print(f'        {f}')
+            print(f'        → {detail}')
+        else:
+            print(f'        {f} (Desktop shortcut)')
+            print(f'        → {detail}')
+
+    # Auto-fix
+    print()
+    fixed_count = 0
+    for kind, f, content in problems:
+        if kind == 'shortcut':
+            print(f'    [!] Skipped shortcut (needs manual fix): {f.name}')
+            print(f'        Right-click → Properties → remove "--bare" from Target/Arguments')
+            continue
+        if kind == 'shell_config':
+            print(f'    [!] Skipped shell config (needs manual check): {f}')
+            print(f'        Edit the file and remove "--bare" from the claude alias')
+            continue
+
+        # Auto-fix scripts (.cmd/.ps1/.sh)
+        new_content = _fix_file(f, content)
+        if new_content is None:
+            continue
+        # Backup
+        backup = f.with_suffix(f.suffix + '.skillrouter-backup')
+        try:
+            shutil.copy2(f, backup)
+            f.write_text(new_content, encoding='utf-8')
+            print(f'    [v] Fixed: {f.name}  (backup: {backup.name})')
+            fixed_count += 1
+        except Exception as e:
+            print(f'    [x] Failed to fix {f.name}: {e}')
+
+    if fixed_count:
+        print(f'\n    [v] Auto-fixed {fixed_count} file(s). Originals backed up as *.skillrouter-backup')
+    if any(kind in ('shortcut', 'shell_config') for kind, _, _ in problems):
+        print(f'    [!] Some items need manual fix — see above.')
+
+    print()
+
+# ── Dependency checks ──────────────────────────────────────────────────────
+
 def check_numpy():
     try:
         import numpy  # noqa
@@ -69,6 +268,8 @@ def check_sentence_transformers():
         return True
     except ImportError:
         return False
+
+# ── Skill scanning ─────────────────────────────────────────────────────────
 
 def detect_skills_root():
     for p in SKILLS_ROOTS:
@@ -96,7 +297,7 @@ def build_vector_index():
         return
     if not check_sentence_transformers():
         print('[!] sentence-transformers not installed')
-        print('    Local semantic matching unavailable (pip install sentence-transformers to enable)')
+        print('    Local semantic matching unavailable: pip install sentence-transformers')
         print('    Keyword matching + LLM API routing will still work')
         return
 
@@ -133,7 +334,7 @@ def write_settings():
         'hooks': [{'type': 'command', 'command': hook_cmd, 'timeout': 30}]
     }]
 
-    # Add CC custom commands for skill control
+    # Add CC custom commands for skill control (both -- and / variants)
     s.setdefault('commands', {})
     s['commands']['skillstatus'] = {'description': 'Show SkillRouter status', 'prompt': '--skill-status'}
     s['commands']['skilllist']   = {'description': 'List all registered skills', 'prompt': '--skill-list'}
@@ -142,6 +343,8 @@ def write_settings():
     s['commands']['skilldebug']  = {'description': 'Diagnostic report', 'prompt': '--skill-debug'}
 
     SETTINGS.write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding='utf-8')
+
+# ═══ Main ═══════════════════════════════════════════════════════════════════
 
 def main():
     print('=' * 55)
@@ -154,39 +357,52 @@ def main():
         print('    Make sure you cloned the full repository.')
         sys.exit(1)
 
-    # Check dependencies
+    # ── Step 0: Bare mode check ──
+    check_and_fix_bare()
+
+    # ── Step 1: Dependencies ──
     if not check_numpy():
-        print('\n[x] numpy is required. Install it first:')
-        print('    pip install numpy')
+        print('[x] numpy is required. Install it first:')
+        print('    pip install -r requirements.txt')
         sys.exit(1)
 
     has_st = check_sentence_transformers()
 
-    # Scan skills
+    # ── Step 2: Scan skills ──
     skills_json = Path(__file__).parent / 'skills.json'
     root = detect_skills_root()
+    entries = []
     if root:
-        print(f'\n[*] Skills directory: {root}')
-        entries = scan_skills(root)
-        if entries:
-            print(f'    Found {len(entries)} skills: {[e["name"] for e in entries]}')
+        print(f'[*] Skills directory: {root}')
+        scanned = scan_skills(root)
+        scanned_names = {e['name'] for e in scanned}
+        # Add scanned skills first
+        entries = list(scanned)
+        # Also include SKILL_DB entries for skills without SKILL.md files yet
+        # (so the LLM router knows about all available skills)
+        for name, (desc, kw) in SKILL_DB.items():
+            if name not in scanned_names:
+                entries.append({'name': name, 'description': desc, 'keywords': kw})
+        if scanned:
+            print(f'    Found {len(scanned)} SKILL.md(s), {len(entries)} skills total')
         else:
-            print('    No SKILL.md files found — using default registry')
-            entries = []
-        skills_json.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding='utf-8')
+            print(f'    No SKILL.md files found — using {len(entries)} pre-defined skills')
     else:
-        print(f'\n[!] No skills directory found')
+        print(f'[!] No skills directory found')
         print(f'    Create one at ~/.claude/skills/<name>/SKILL.md')
-        print(f'    Using existing skills.json')
+        entries = [{'name': n, 'description': d, 'keywords': k} for n, (d, k) in SKILL_DB.items()]
+        print(f'    Using {len(entries)} pre-defined skills')
 
-    # Build vectors (optional)
+    skills_json.write_text(json.dumps(entries, ensure_ascii=False, indent=2), encoding='utf-8')
+
+    # ── Step 3: Build vectors ──
     build_vector_index()
 
-    # Write settings
+    # ── Step 4: Write hook config ──
     write_settings()
     print(f'\n[v] Hook installed to: {SETTINGS}')
 
-    # Summary
+    # ── Summary ──
     keyword_ok = 'Yes'
     llm_ok = 'Yes (auto-detect your API key)'
     local_ok = 'Yes (BGE bilingual)' if has_st else 'No — pip install sentence-transformers'
@@ -198,34 +414,31 @@ def main():
     print(f'  3. Local semantic:         {local_ok}')
     print(f'{"─" * 55}')
 
+    n = len(entries) if entries else 18
     print(f'''
 ╔══════════════════════════════════════════════════════════════╗
-║  ⚠️  READ THIS — or SkillRouter won't work!                  ║
+║  ✅  INSTALL COMPLETE                                        ║
 ╠══════════════════════════════════════════════════════════════╣
 ║                                                              ║
-║  Restart Claude Code. Then type: --skill-status              ║
+║  Restart Claude Code, then type: --skill-status              ║
 ║                                                              ║
-║  ✅ See a response? → You're good.                           ║
-║  ❌ No response? → You're in --bare mode.                    ║
+║  ✅ Response → working!                                      ║
+║  ❌ No response → check /skillstatus instead                 ║
+║     (some CC versions intercept -- commands)                 ║
 ║                                                              ║
-║  BARE MODE: The #1 reason SkillRouter "doesn't work".        ║
+║  If still nothing: your CC is in --bare mode.                ║
+║  Start CC without --bare: just type "claude".                ║
 ║                                                              ║
-║  Fix: Don't run "claude --bare". Just run "claude".          ║
-║       Model is in settings.json, not in the command.         ║
-║       If you have a custom .cmd/.sh shortcut, open it        ║
-║       and delete the "--bare" part.                          ║
-║                                                              ║
-║  不管你把模型换成什么 (DeepSeek, OpenAI...)，启动命令        ║
-║  永远是 "claude"。模型在 settings.json 里配置，跟命令        ║
-║  没关系。不需要 claude-ds、claude-opus 之类的东西。          ║
+║  启动命令名字无所谓 (claude/claude-ds/什么都行)，             ║
+║  关键是不要加 --bare。模型在 settings.json 里配置。           ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝''')
-    print(f'  Try in CC:')
-    print(f'    --skill-status  View router status')
-    print(f'    --skill-list    List all {len(entries) if root else "?"} skills')
-    print(f'    --skill-debug   Full diagnostic')
-    print(f'    --skill-off     Disable')
-    print(f'    --skill-on      Re-enable')
+    print(f'  Commands:')
+    print(f'    --skill-status | /skillstatus   View status ({n} skills)')
+    print(f'    --skill-list   | /skilllist     List all skills')
+    print(f'    --skill-debug  | /skilldebug    Full diagnostic')
+    print(f'    --skill-off    | /skilloff      Disable')
+    print(f'    --skill-on     | /skillon       Re-enable')
 
 
 if __name__ == '__main__':

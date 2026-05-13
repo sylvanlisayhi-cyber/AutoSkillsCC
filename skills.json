@@ -1,103 +1,284 @@
 [
   {
     "name": "frontend-design",
-    "description": "高质量前端React/Vue组件开发规范，包含TypeScript类型定义、Tailwind CSS样式、响应式布局和无障碍设计",
+    "description": "React/Vue组件开发规范 — TypeScript、Tailwind CSS、响应式布局、无障碍设计",
     "keywords": [
-      "frontend", "react", "vue", "angular", "component", "html", "css", "tailwind", "web",
-      "前端", "按钮", "组件", "界面", "页面", "表单", "布局", "ui", "样式",
-      "jsx", "tsx", "next.js", "nuxt", "svelte", "响应式", "导航栏", "弹窗", "modal",
-      "表格", "列表", "输入框", "下拉", "菜单", "侧边栏", "footer", "header"
+      "frontend",
+      "react",
+      "vue",
+      "angular",
+      "component",
+      "html",
+      "css",
+      "tailwind",
+      "web",
+      "jsx",
+      "tsx",
+      "next.js",
+      "nuxt",
+      "svelte",
+      "前端",
+      "按钮",
+      "组件",
+      "界面",
+      "页面",
+      "表单",
+      "布局",
+      "ui",
+      "样式",
+      "响应式",
+      "导航栏",
+      "弹窗",
+      "modal",
+      "表格",
+      "列表"
     ]
   },
   {
     "name": "ok-person",
-    "description": "当用户说ok人时，回复随机数量的ok",
+    "description": "ok-person skill",
     "keywords": [
-      "ok人", "ok的人", "ok-person", "okperson", "你是ok人", "我是ok人"
+      "ok",
+      "person"
     ]
   },
   {
     "name": "docx",
     "description": "Word文档生成与编辑，.docx文件创建、格式化、模板处理",
-    "keywords": ["word", "docx", "document", "report", "doc", "文档", "报告", "word文档"]
+    "keywords": [
+      "word",
+      "docx",
+      "document",
+      "report",
+      "doc",
+      "文档",
+      "报告"
+    ]
   },
   {
     "name": "pdf",
     "description": "PDF文件生成、读取、解析与内容提取",
-    "keywords": ["pdf", "generate", "read", "pdf文件", "生成pdf", "读取pdf"]
+    "keywords": [
+      "pdf",
+      "generate",
+      "read",
+      "生成",
+      "读取"
+    ]
   },
   {
     "name": "pptx",
     "description": "PowerPoint演示文稿创建，幻灯片布局设计与内容填充",
-    "keywords": ["ppt", "pptx", "slides", "presentation", "演示", "幻灯片", "ppt文件", "课件"]
+    "keywords": [
+      "ppt",
+      "pptx",
+      "slides",
+      "presentation",
+      "演示",
+      "幻灯片",
+      "课件"
+    ]
   },
   {
     "name": "xlsx",
     "description": "Excel电子表格处理，数据导入导出、公式计算与图表",
-    "keywords": ["excel", "xlsx", "spreadsheet", "csv", "xls", "表格", "电子表格", "数据导出"]
+    "keywords": [
+      "excel",
+      "xlsx",
+      "spreadsheet",
+      "csv",
+      "xls",
+      "表格",
+      "电子表格",
+      "数据导出"
+    ]
   },
   {
     "name": "python-dev",
-    "description": "Python后端开发规范，包含FastAPI/Django/Flask框架、pytest测试与pip依赖管理",
-    "keywords": ["python", "pip", "script", "pytest", "django", "flask", "fastapi", "import"]
+    "description": "Python后端开发规范 — FastAPI/Django/Flask、pytest、pip",
+    "keywords": [
+      "python",
+      "pip",
+      "script",
+      "pytest",
+      "django",
+      "flask",
+      "fastapi",
+      "import"
+    ]
   },
   {
     "name": "database-design",
-    "description": "数据库设计与SQL优化，支持MySQL/PostgreSQL/MongoDB/Redis多种数据库",
-    "keywords": ["database", "sql", "mysql", "postgresql", "mongodb", "redis", "orm", "query", "index",
-                 "数据库", "查询", "索引", "表"]
+    "description": "数据库设计与SQL优化 — MySQL/PostgreSQL/MongoDB/Redis",
+    "keywords": [
+      "database",
+      "sql",
+      "mysql",
+      "postgresql",
+      "mongodb",
+      "redis",
+      "orm",
+      "query",
+      "index",
+      "数据库",
+      "查询",
+      "索引",
+      "表"
+    ]
   },
   {
     "name": "docker-container",
-    "description": "Docker容器化部署，Dockerfile编写、Kubernetes编排与服务管理",
-    "keywords": ["docker", "container", "dockerfile", "k8s", "kubernetes", "deploy", "部署", "容器"]
+    "description": "Docker容器化部署 — Dockerfile编写、K8s编排",
+    "keywords": [
+      "docker",
+      "container",
+      "dockerfile",
+      "k8s",
+      "kubernetes",
+      "deploy",
+      "部署",
+      "容器"
+    ]
   },
   {
     "name": "debugging",
-    "description": "代码调试与故障排查，错误堆栈分析、性能瓶颈定位",
-    "keywords": ["debug", "bug", "error", "crash", "stack", "fix", "调试", "错误", "bug", "修复",
-                 "报错", "崩溃", "异常", "堆栈"]
+    "description": "代码调试与故障排查 — 错误堆栈分析、性能瓶颈定位",
+    "keywords": [
+      "debug",
+      "bug",
+      "error",
+      "crash",
+      "stack",
+      "fix",
+      "调试",
+      "错误",
+      "bug",
+      "修复",
+      "报错",
+      "崩溃",
+      "异常",
+      "堆栈"
+    ]
   },
   {
     "name": "testing",
-    "description": "自动化测试规范，单元测试、集成测试、E2E测试与覆盖率要求",
-    "keywords": ["test", "jest", "pytest", "e2e", "coverage", "mock", "测试", "单元测试", "集成测试"]
+    "description": "自动化测试规范 — 单元测试、集成测试、E2E、覆盖率",
+    "keywords": [
+      "test",
+      "jest",
+      "pytest",
+      "e2e",
+      "coverage",
+      "mock",
+      "测试",
+      "单元测试",
+      "集成测试"
+    ]
   },
   {
     "name": "git-workflow",
-    "description": "Git工作流规范，分支管理、提交信息格式、PR审查流程",
-    "keywords": ["git", "commit", "branch", "merge", "rebase", "pr", "push", "clone", "分支", "提交"]
+    "description": "Git工作流规范 — 分支管理、提交信息、PR审查",
+    "keywords": [
+      "git",
+      "commit",
+      "branch",
+      "merge",
+      "rebase",
+      "pr",
+      "push",
+      "clone",
+      "分支",
+      "提交"
+    ]
   },
   {
     "name": "api-design",
-    "description": "RESTful/GraphQL API设计规范，OpenAPI文档、端点命名与版本管理",
-    "keywords": ["api", "rest", "graphql", "endpoint", "swagger", "openapi", "restful", "接口"]
+    "description": "RESTful/GraphQL API设计规范 — OpenAPI、端点命名、版本管理",
+    "keywords": [
+      "api",
+      "rest",
+      "graphql",
+      "endpoint",
+      "swagger",
+      "openapi",
+      "restful",
+      "接口"
+    ]
   },
   {
     "name": "performance-optimization",
-    "description": "性能优化指南，慢查询分析、缓存策略、CDN与资源压缩",
-    "keywords": ["performance", "optimize", "slow", "latency", "profile", "benchmark", "性能", "优化",
-                 "加速", "缓存", "cache"]
+    "description": "性能优化指南 — 慢查询分析、缓存策略、CDN与资源压缩",
+    "keywords": [
+      "performance",
+      "optimize",
+      "slow",
+      "latency",
+      "profile",
+      "benchmark",
+      "cache",
+      "性能",
+      "优化",
+      "加速",
+      "缓存"
+    ]
   },
   {
     "name": "security-audit",
-    "description": "安全审计规范，XSS/CSRF防护、JWT认证、SQL注入防御与漏洞扫描",
-    "keywords": ["security", "xss", "csrf", "ssl", "auth", "jwt", "vulnerability", "安全", "加密", "认证"]
+    "description": "安全审计规范 — XSS/CSRF防护、JWT认证、SQL注入防御",
+    "keywords": [
+      "security",
+      "xss",
+      "csrf",
+      "ssl",
+      "auth",
+      "jwt",
+      "vulnerability",
+      "安全",
+      "加密",
+      "认证"
+    ]
   },
   {
     "name": "refactoring",
-    "description": "代码重构最佳实践，Clean Code原则、设计模式应用与代码异味消除",
-    "keywords": ["refactor", "clean", "code", "quality", "重构", "代码质量", "设计模式"]
+    "description": "代码重构最佳实践 — Clean Code、设计模式、代码异味消除",
+    "keywords": [
+      "refactor",
+      "clean",
+      "code",
+      "quality",
+      "重构",
+      "代码质量",
+      "设计模式"
+    ]
   },
   {
     "name": "cli-tool",
-    "description": "CLI命令行工具开发规范，argparse参数解析、终端交互设计",
-    "keywords": ["cli", "terminal", "bash", "shell", "argparse", "命令行", "终端", "脚本"]
+    "description": "CLI命令行工具开发规范 — argparse、终端交互设计",
+    "keywords": [
+      "cli",
+      "terminal",
+      "bash",
+      "shell",
+      "argparse",
+      "命令行",
+      "终端",
+      "脚本"
+    ]
   },
   {
     "name": "data-analysis",
-    "description": "数据分析工作流，Pandas/NumPy数据处理、Matplotlib可视化与统计建模",
-    "keywords": ["pandas", "numpy", "csv", "analysis", "visualization", "matplotlib", "数据分析",
-                 "数据可视化", "统计", "图表"]
+    "description": "数据分析工作流 — Pandas/NumPy、Matplotlib可视化、统计建模",
+    "keywords": [
+      "pandas",
+      "numpy",
+      "csv",
+      "analysis",
+      "visualization",
+      "matplotlib",
+      "数据分析",
+      "数据可视化",
+      "统计",
+      "图表"
+    ]
   }
 ]

@@ -62,32 +62,20 @@ AI:   >> 🟢 已开启 <<
 
 **99% 的"装了没用"都是同一个原因：启动了 `--bare` 模式。**
 
-当你装好 Claude Code 之后，可能会有这些启动方式——全部检查一遍：
+好消息：**install.py 会自动检测并修复你脚本里的 --bare。** 如果你是从终端直接打 `claude --bare`，读完下面自查一下就行。
 
-| 你可能是这样启动的 | 检查什么 |
+When you run `python install.py`, it **automatically scans** your Claude Code startup scripts for `--bare` and fixes them. If you manually type `claude --bare` in the terminal — just stop doing that.
+
+| 你的启动方式 | 怎么做 |
 |---|---|
-| 终端打 `claude` | ✅ 正常，没问题 |
-| 终端打 `claude --bare` | ❌ **删掉 `--bare`** |
-| 终端打 `claude-ds` / `claude-opus` / 其他名字 | ⚠️ 打开那个文件，看里面有没有 `--bare` |
-| 桌面快捷方式 / .cmd / .sh 脚本 | ⚠️ 打开那个文件，搜 `bare`，有就删 |
-| VS Code / JetBrains 插件 | ⚠️ 看插件设置里有没有 bare 选项，关掉 |
+| 终端打 `claude` | ✅ 正常 |
+| 终端打 `claude --bare` | ❌ **不要加 --bare** |
+| 终端打 `claude-ds` / `claude-opus` / 任意名字 | ✅ 正常，名字无所谓 |
+| 桌面快捷方式 / .cmd / .sh 脚本 | ✅ install.py 会自动检查并修复 |
 
-**自查方法**：重启 CC 后，打 `--skill-status`。如果回复了状态信息 → 装好了。如果没反应 → 你在 bare 模式，hooks 是关的。
+**名字不重要。** 你叫它 `claude`、`claude-ds`、`claude-opus` 都行——关键是不带 `--bare`。模型是在 `~/.claude/settings.json` 里配的，跟启动命令叫什么毫无关系。
 
-> **bare 模式会让 Claude Code 禁用所有 hook。SkillRouter 是 hook 驱动的，bare 模式下等于没装。**
-> 
-> 但这不是 bug——这是你的 Claude Code 设置问题。关掉 bare，立马就好。
-
-#### 关于启动命令 / About the startup command
-
-**不管你把模型换成了 DeepSeek / OpenAI / 其他什么，启动命令都是 `claude`。**
-
-模型是在 `~/.claude/settings.json` 里配的，跟启动命令没关系。不需要 `claude-ds`、`claude-opus` 之类的——如果你有这些，那是你自己创建的快捷方式，查一下里面有没有 `--bare` 就行。
-
-### 前提 / Prerequisites
-
-- Python 3.10+
-- Claude Code（**不要 --bare！**）
+**The command name doesn't matter.** Whether it's `claude`, `claude-ds`, `claude-opus`, whatever — as long as there's no `--bare`. The model is configured in `settings.json`, not in the startup command name.
 
 ### 三步搞定 / 3 Steps
 
@@ -96,9 +84,8 @@ AI:   >> 🟢 已开启 <<
 git clone https://github.com/sylvanlisayhi-cyber/SkillRouter.git
 cd SkillRouter
 
-# 2. 装依赖 / Install deps (numpy 必装, sentence-transformers 可选)
-pip install numpy
-pip install sentence-transformers  # 可选/optional — 本地语义路由
+# 2. 装依赖 / Install deps
+pip install -r requirements.txt
 
 # 3. 一键安装 / One-click install
 python install.py
@@ -106,6 +93,9 @@ python install.py
 
 **重启 Claude Code，打 `--skill-status` 验证。看到回复 → 搞定。**  
 **Restart Claude Code, type `--skill-status`. See a response? Done.**
+
+> 🔧 如果 `--skill-status` 没反应，试 `/skillstatus`。某些 CC 版本会拦截 `--` 开头的命令。
+> If `--skill-status` doesn't work, try `/skillstatus`. Some CC versions intercept `--` commands.
 
 ---
 
@@ -119,17 +109,18 @@ Just chat. When your request matches a skill, the AI follows its guidelines auto
 
 ### 魔法指令 / Magic Commands
 
-直接在聊天框里打：
+直接在聊天框里打。如果 `--xxx` 没反应，用 `/xxx`（前面加斜杠）：
 
-| 指令 / Command | 干嘛的 / What |
-|---|---|
-| `--skill-status` | 查看状态 / View status |
-| `--skill-list` | 列出所有技能 / List all skills |
-| `--skill-on` | 开启自动加载 / Enable |
-| `--skill-off` | 关闭自动加载 / Disable |
-| `--skill-debug` | 完整诊断 / Full diagnostics |
+| 指令 / Command | 备选 / Fallback | 干嘛的 / What |
+|---|---|---|
+| `--skill-status` | `/skillstatus` | 查看状态 / View status |
+| `--skill-list` | `/skilllist` | 列出所有技能 / List all skills |
+| `--skill-on` | `/skillon` | 开启自动加载 / Enable |
+| `--skill-off` | `/skilloff` | 关闭自动加载 / Disable |
+| `--skill-debug` | `/skilldebug` | 完整诊断 / Full diagnostics |
 
-也可以用 CC 自定义命令：`/skillstatus`、`/skilllist`、`/skillon`、`/skilloff`、`/skilldebug`
+> 用 `/skillstatus` 等 CC 自定义命令永远有效，不受 CC 版本影响。  
+> `/skillstatus` etc. always work, unaffected by CC version.
 
 ---
 
@@ -221,19 +212,20 @@ python build_vector_index.py
 ## ❓ FAQ
 
 <details>
-<summary><b>Q: 装完没反应？打了 --skill-status 什么都没发生？</b></summary>
-<b>99% 是 --bare 模式。</b><br>
-你启动 CC 的命令里带了 <code>--bare</code>。检查你的终端启动命令、快捷方式、.cmd/.sh 脚本。<br>
-删掉 <code>--bare</code>，重启 CC，再打 <code>--skill-status</code>，有回复就对了。<br>
-<em>Read the "Before Installing" section above for the full checklist.</em>
+<summary><b>Q: 装完没反应？打什么都无效？</b></summary>
+<b>三步排查：</b><br>
+1. 试 <code>/skillstatus</code>（有些 CC 版本拦截 <code>--</code> 开头的命令）<br>
+2. 如果 <code>/skillstatus</code> 也不行 → 你在 <code>--bare</code> 模式，重启不要带 <code>--bare</code><br>
+3. 如果还不行 → 重新跑一次 <code>python install.py</code>，它会自动扫描修复<br>
+<em>1. Try /skillstatus. 2. Restart without --bare. 3. Re-run install.py for auto-fix.</em>
 </details>
 
 <details>
-<summary><b>Q: 我换了 DeepSeek 模型，启动命令是不是要变？</b></summary>
-<b>不用。永远是 <code>claude</code>。</b><br>
-模型是在 <code>~/.claude/settings.json</code> 里配置的（<code>"model": "deepseek-v4-pro"</code>），跟启动命令无关。<br>
-不需要 <code>claude-ds</code>、<code>claude-opus</code> 之类的——如果你有这些文件，那是你自己建的快捷方式，打开看有没有 <code>--bare</code> 就行。<br>
-<em>No. The command is always <code>claude</code>. The model is configured in settings.json, not in the startup command.</em>
+<summary><b>Q: 我换了 DeepSeek 模型，启动命令还是 claude 吗？</b></summary>
+<b>启动命令叫什么无所谓。</b><br>
+模型是在 <code>~/.claude/settings.json</code> 里配置的，跟命令名字没关系。<br>
+叫 <code>claude</code>、<code>claude-ds</code>、<code>claude-opus</code> 都行——只要别带 <code>--bare</code>。<br>
+<em>The command name doesn't matter. Model is in settings.json. Just don't use --bare.</em>
 </details>
 
 <details>
