@@ -58,41 +58,154 @@ AI:   >> 🟢 已开启 <<
 
 ## 📦 安装 / Install
 
-### ⚠️ 装前必读 — 别让安装白费 / Read Before Installing
+### 第 0 步：前提条件 / Prerequisites
 
-**99% 的"装了没用"都是同一个原因：启动了 `--bare` 模式。**
+装 SkillRouter 之前，这三样东西得有。没装过的跟着教程走，5 分钟搞定。
 
-好消息：**install.py 会自动检测并修复你脚本里的 --bare。** 如果你是从终端直接打 `claude --bare`，读完下面自查一下就行。
+You need these three things before SkillRouter. Follow the guides below, 5 minutes tops.
 
-When you run `python install.py`, it **automatically scans** your Claude Code startup scripts for `--bare` and fixes them. If you manually type `claude --bare` in the terminal — just stop doing that.
+---
 
-| 你的启动方式 | 怎么做 |
-|---|---|
-| 终端打 `claude` | ✅ 正常 |
-| 终端打 `claude --bare` | ❌ **不要加 --bare** |
-| 终端打 `claude-ds` / `claude-opus` / 任意名字 | ✅ 正常，名字无所谓 |
-| 桌面快捷方式 / .cmd / .sh 脚本 | ✅ install.py 会自动检查并修复 |
+#### 🐍 Python 3.10+
 
-**名字不重要。** 你叫它 `claude`、`claude-ds`、`claude-opus` 都行——关键是不带 `--bare`。模型是在 `~/.claude/settings.json` 里配的，跟启动命令叫什么毫无关系。
+怎么知道你装没装？打开终端，打：
 
-**The command name doesn't matter.** Whether it's `claude`, `claude-ds`, `claude-opus`, whatever — as long as there's no `--bare`. The model is configured in `settings.json`, not in the startup command name.
-
-### 三步搞定 / 3 Steps
+How to check: open a terminal and type:
 
 ```bash
-# 1. 克隆 / Clone
+python --version
+# or / 或者
+python3 --version
+```
+
+看到 `Python 3.10.x` / `3.11.x` / `3.12.x` / `3.13.x` → 有了，跳过。  
+See a 3.10+ version? Skip to the next section.
+
+没装？按你的系统来：
+
+**Windows：**
+1. 去 https://www.python.org/downloads/ 点那个黄色大按钮下载
+2. 运行安装程序，⚠️ **勾上 "Add Python to PATH"**（这步很多人忘）
+3. 装完重新打开终端，打 `python --version` 验证
+
+**macOS：**
+```bash
+# 方式 1：官网下载（和 Windows 一样）
+# 方式 2：Homebrew（推荐）
+brew install python@3.12
+```
+
+**Linux：**
+```bash
+# Ubuntu / Debian
+sudo apt update && sudo apt install python3 python3-pip -y
+
+# Fedora
+sudo dnf install python3 python3-pip -y
+
+# Arch
+sudo pacman -S python python-pip
+```
+
+---
+
+#### 💻 Claude Code 终端版
+
+> ⚠️ SkillRouter 只支持 **Claude Code 终端版**（命令行工具）。  
+> Web 版（claude.ai）和 VS Code/JetBrains 插件版没有 hook 系统，装了也没用。  
+> SkillRouter only works with the **Claude Code CLI** (terminal). Not the web app or IDE extensions.
+
+怎么装 Claude Code 终端版：
+
+**方式 1：npm 全局安装（推荐，所有系统通用）**
+```bash
+npm install -g @anthropic-ai/claude-code
+```
+（没有 npm？先去 https://nodejs.org 装 Node.js，LTS 版本就行）
+
+**方式 2：直接下载（Windows）**
+去 https://claude.ai/download 下载 `.exe` 安装程序。
+
+装完在终端打 `claude`，看到 Claude Code 的界面 → 装好了。
+
+> 💡 如果想换成 DeepSeek 模型：把 API key 设到环境变量 `ANTHROPIC_API_KEY`，然后在 CC 里打 `/model deepseek-v4-pro`。不需要改启动命令，不需要 `claude-ds`。
+
+---
+
+#### 🔑 AI API Key
+
+SkillRouter 的三层路由里，第二层（LLM 路由）需要一个 API Key。**你的 CC 在用哪个模型，就给它哪个模型的 Key。**
+
+| 你用的模型 | 需要什么 Key | 去哪拿 |
+|---|---|---|
+| Claude (Anthropic) | `ANTHROPIC_API_KEY` | https://console.anthropic.com → API Keys |
+| DeepSeek | `DEEPSEEK_API_KEY` | https://platform.deepseek.com → API Keys |
+| OpenAI | `OPENAI_API_KEY` | https://platform.openai.com → API Keys |
+
+**怎么设环境变量：**
+
+**Windows（PowerShell）：**
+```powershell
+[Environment]::SetEnvironmentVariable('ANTHROPIC_API_KEY', 'sk-ant-xxxxx', 'User')
+# 或 DeepSeek：
+[Environment]::SetEnvironmentVariable('DEEPSEEK_API_KEY', 'sk-xxxxx', 'User')
+```
+设完**重启终端**生效。
+
+**macOS / Linux：**
+```bash
+echo 'export ANTHROPIC_API_KEY=sk-ant-xxxxx' >> ~/.zshrc
+source ~/.zshrc
+```
+
+> ❓ 没有 API Key？没关系。关键词匹配（第一层）永远可用。装了 `sentence-transformers` 的话，本地语义（第三层）也永远可用。纯离线都能跑。
+> No API key? Keyword matching (layer 1) always works. Install sentence-transformers for offline semantic matching (layer 3).
+
+---
+
+### 第 1 步：克隆项目 / Clone
+
+```bash
 git clone https://github.com/sylvanlisayhi-cyber/SkillRouter.git
 cd SkillRouter
+```
 
-# 2. 装依赖 / Install deps
+### 第 2 步：装依赖 / Install Dependencies
+
+```bash
 pip install -r requirements.txt
+```
+（numpy 必装；sentence-transformers 可选，装了能离线语义匹配）
 
-# 3. 一键安装 / One-click install
+### 第 3 步：一键安装 / Run Installer
+
+```bash
 python install.py
 ```
 
-**重启 Claude Code，打 `--skill-status` 验证。看到回复 → 搞定。没反应？你开了 `--bare`，装前必读再看一遍。**  
-**Restart CC, type `--skill-status`. See response? Done. No response? You're in `--bare` mode — re-read above.**
+自动干五件事：
+1. 🔍 扫描你有没有 `--bare`，有就自动修
+2. 📂 扫描 `~/.claude/skills/` 目录
+3. 📋 生成 18 个技能的注册表（skills.json）
+4. 🧠 构建中英文双语向量索引
+5. ⚙️ 写入 Claude Code hook 配置
+
+### 第 4 步：重启验证 / Restart & Verify
+
+**重启 Claude Code（关掉重开），然后在对话框里打：**
+
+```
+--skill-status
+```
+
+看到这个 → 搞定 🎉
+
+```
+>> 🟢 技能状态：已开启 | 已注册 18 个技能 <<
+```
+
+> ❌ 没反应？你在 `--bare` 模式。再跑一次 `python install.py` 让它自动修，然后重启 CC。  
+> No response? You're in --bare mode. Re-run `python install.py` to auto-fix, then restart.
 
 ---
 
