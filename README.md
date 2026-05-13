@@ -91,11 +91,8 @@ pip install -r requirements.txt
 python install.py
 ```
 
-**重启 Claude Code，打 `--skill-status` 验证。看到回复 → 搞定。**  
-**Restart Claude Code, type `--skill-status`. See a response? Done.**
-
-> 🔧 如果 `--skill-status` 没反应，试 `/skillstatus`。某些 CC 版本会拦截 `--` 开头的命令。
-> If `--skill-status` doesn't work, try `/skillstatus`. Some CC versions intercept `--` commands.
+**重启 Claude Code，打 `--skill-status` 验证。看到回复 → 搞定。没反应？你开了 `--bare`，装前必读再看一遍。**  
+**Restart CC, type `--skill-status`. See response? Done. No response? You're in `--bare` mode — re-read above.**
 
 ---
 
@@ -109,18 +106,15 @@ Just chat. When your request matches a skill, the AI follows its guidelines auto
 
 ### 魔法指令 / Magic Commands
 
-直接在聊天框里打。如果 `--xxx` 没反应，用 `/xxx`（前面加斜杠）：
+直接打在聊天框里就行：
 
-| 指令 / Command | 备选 / Fallback | 干嘛的 / What |
-|---|---|---|
-| `--skill-status` | `/skillstatus` | 查看状态 / View status |
-| `--skill-list` | `/skilllist` | 列出所有技能 / List all skills |
-| `--skill-on` | `/skillon` | 开启自动加载 / Enable |
-| `--skill-off` | `/skilloff` | 关闭自动加载 / Disable |
-| `--skill-debug` | `/skilldebug` | 完整诊断 / Full diagnostics |
-
-> 用 `/skillstatus` 等 CC 自定义命令永远有效，不受 CC 版本影响。  
-> `/skillstatus` etc. always work, unaffected by CC version.
+| 指令 / Command | 干嘛的 / What |
+|---|---|
+| `--skill-status` | 查看状态 / View status |
+| `--skill-list` | 列出所有技能 / List all skills |
+| `--skill-on` | 开启自动加载 / Enable |
+| `--skill-off` | 关闭自动加载 / Disable |
+| `--skill-debug` | 完整诊断 / Full diagnostics |
 
 ---
 
@@ -186,7 +180,30 @@ SkillRouter/
 
 ---
 
-## 🔧 添加你自己的技能 / Add Your Own Skills
+## 📂 技能放哪里？/ Where Do My Skills Live?
+
+**所有技能都放在一个地方：**
+
+```
+~/.claude/skills/
+├── frontend-design/
+│   └── SKILL.md       ← 就是它！一个目录，一个 SKILL.md
+├── ok-person/
+│   └── SKILL.md
+├── my-awesome-skill/   ← 你自己建的也放这
+│   └── SKILL.md
+└── ...
+```
+
+**规则很简单：**每个技能 = 一个子目录 + 一个 `SKILL.md` 文件。目录名就是技能名。
+
+Windows 上 `~` 是 `C:\Users\你的用户名`，macOS/Linux 上就是 `/home/你的用户名` 或 `/Users/你的用户名`。
+
+SkillRouter 装好后自动扫描这个目录。你放进去的技能会自动注册到 `skills.json`。
+
+---
+
+## 🔧 添加新技能 / Add a New Skill
 
 ```bash
 # 1. 创建技能目录 / Create skill directory
@@ -212,12 +229,11 @@ python build_vector_index.py
 ## ❓ FAQ
 
 <details>
-<summary><b>Q: 装完没反应？打什么都无效？</b></summary>
-<b>三步排查：</b><br>
-1. 试 <code>/skillstatus</code>（有些 CC 版本拦截 <code>--</code> 开头的命令）<br>
-2. 如果 <code>/skillstatus</code> 也不行 → 你在 <code>--bare</code> 模式，重启不要带 <code>--bare</code><br>
-3. 如果还不行 → 重新跑一次 <code>python install.py</code>，它会自动扫描修复<br>
-<em>1. Try /skillstatus. 2. Restart without --bare. 3. Re-run install.py for auto-fix.</em>
+<summary><b>Q: 装完没反应？打 --skill-status 什么都没发生？</b></summary>
+<b>99% 是 --bare 模式。</b><br>
+你启动 CC 的命令里带了 <code>--bare</code>。重新跑 <code>python install.py</code>，它会自动扫描并修复。<br>
+或者自己检查：启动脚本里有没有 <code>--bare</code>？有就删，重启就行。<br>
+<em>99% it's --bare. Re-run install.py for auto-fix, or check your startup scripts manually.</em>
 </details>
 
 <details>
@@ -248,8 +264,8 @@ AI 回复开头会显示 <code>>> ⚡ 技能已加载: xxx</code>。看不到这
 
 <details>
 <summary><b>Q: 能关掉吗？怎么关？</b></summary>
-打 <code>--skill-off</code> 或 <code>/skilloff</code>。想聊理论、问概念的时候关掉就行。打 <code>--skill-on</code> 重新开。<br>
-<em>Type --skill-off or /skilloff to disable. --skill-on to re-enable.</em>
+打 <code>--skill-off</code>。想聊理论、问概念的时候关掉就行。打 <code>--skill-on</code> 重新开。<br>
+<em>Type --skill-off to disable, --skill-on to re-enable.</em>
 </details>
 
 <details>

@@ -334,13 +334,7 @@ def write_settings():
         'hooks': [{'type': 'command', 'command': hook_cmd, 'timeout': 30}]
     }]
 
-    # Add CC custom commands for skill control (both -- and / variants)
-    s.setdefault('commands', {})
-    s['commands']['skillstatus'] = {'description': 'Show SkillRouter status', 'prompt': '--skill-status'}
-    s['commands']['skilllist']   = {'description': 'List all registered skills', 'prompt': '--skill-list'}
-    s['commands']['skillon']     = {'description': 'Enable auto-loading', 'prompt': '--skill-on'}
-    s['commands']['skilloff']    = {'description': 'Disable auto-loading', 'prompt': '--skill-off'}
-    s['commands']['skilldebug']  = {'description': 'Diagnostic report', 'prompt': '--skill-debug'}
+    # Add CC custom commands (type --skill-xxx directly in dialog)
 
     SETTINGS.write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding='utf-8')
 
@@ -423,22 +417,20 @@ def main():
 ║  Restart Claude Code, then type: --skill-status              ║
 ║                                                              ║
 ║  ✅ Response → working!                                      ║
-║  ❌ No response → check /skillstatus instead                 ║
-║     (some CC versions intercept -- commands)                 ║
+║  ❌ No response → your CC is in --bare mode.                 ║
+║     Re-run install.py to auto-fix, or start CC without       ║
+║     --bare. Just type "claude" (or whatever you named it).   ║
 ║                                                              ║
-║  If still nothing: your CC is in --bare mode.                ║
-║  Start CC without --bare: just type "claude".                ║
-║                                                              ║
-║  启动命令名字无所谓 (claude/claude-ds/什么都行)，             ║
-║  关键是不要加 --bare。模型在 settings.json 里配置。           ║
+║  启动命令叫什么无所谓 (claude/claude-ds/什么都行)，           ║
+║  关键是不要 --bare。模型在 settings.json 里配置。             ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝''')
-    print(f'  Commands:')
-    print(f'    --skill-status | /skillstatus   View status ({n} skills)')
-    print(f'    --skill-list   | /skilllist     List all skills')
-    print(f'    --skill-debug  | /skilldebug    Full diagnostic')
-    print(f'    --skill-off    | /skilloff      Disable')
-    print(f'    --skill-on     | /skillon       Re-enable')
+    print(f'  Commands (type in CC dialog):')
+    print(f'    --skill-status   View status ({n} skills)')
+    print(f'    --skill-list     List all skills')
+    print(f'    --skill-debug    Full diagnostic')
+    print(f'    --skill-off      Disable auto-loading')
+    print(f'    --skill-on       Re-enable auto-loading')
 
 
 if __name__ == '__main__':
