@@ -388,6 +388,23 @@ Windows / macOS / Linux，Python 3.10+。
 
 ---
 
+## 🧪 测试状态 / Tested On
+
+| 平台 | 状态 | 备注 |
+|---|---|---|
+| Windows 11 + Python 3.12 + CC 2.x | ✅ 实测通过 | 开发者日常使用环境 |
+| macOS + Python 3.10+ + CC 2.x | 🟡 代码逻辑支持，未实测 | 欢迎反馈 |
+| Linux + Python 3.10+ + CC 2.x | 🟡 代码逻辑支持，未实测 | 欢迎反馈 |
+
+> 项目全部使用 Python 标准库 + `Path.home()` 等跨平台 API，路径、编码均做了兼容处理。macOS / Linux 理论上直接能用，但诚实说——没跑过。
+>
+> Pure Python stdlib + cross-platform APIs. macOS/Linux should work out of the box, but honestly — not yet tested on them.
+
+**遇到问题？** 来提 Issue，附上你的 OS + Python 版本 + CC 版本：  
+https://github.com/sylvanlisayhi-cyber/SkillRouter/issues
+
+---
+
 ## 📄 License
 
 MIT — 随便用，随便改，随便发。
