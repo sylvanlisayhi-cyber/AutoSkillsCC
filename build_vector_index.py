@@ -26,9 +26,9 @@ def main():
         print(C['Y'] + '[!] skills.json is empty, nothing to compile.' + C['X'])
         sys.exit(0)
 
-    print(C['C'] + '[1/3] Loading embedding model (all-MiniLM-L6-v2)...' + C['X'])
-    print(C['Y'] + '      First run will download ~90MB model. Please wait.' + C['X'])
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+    print(C['C'] + '[1/3] Loading embedding model (paraphrase-multilingual-MiniLM-L12-v2)...' + C['X'])
+    print(C['Y'] + '      First run will download ~470MB model. Please wait.' + C['X'])
+    model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
     print(C['G'] + '      Model loaded.' + C['X'])
 
     print(C['C'] + f'[2/3] Encoding {len(skills)} skills...' + C['X'])

@@ -208,7 +208,7 @@ def _ensure_model():
         sys.stderr = _devnull
         try:
             from sentence_transformers import SentenceTransformer
-            _model = SentenceTransformer('all-MiniLM-L6-v2')
+            _model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
         finally:
             sys.stderr = _saved
             _devnull.close()

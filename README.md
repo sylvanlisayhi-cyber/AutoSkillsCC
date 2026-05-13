@@ -122,7 +122,7 @@ SkillRouter/
     ↓
 [3] 意图过滤 → "是什么/为什么" 等理论提问跳过
     ↓
-[4] 语义向量匹配 → paraphrase-multilingual-MiniLM-L12-v2
+[4] 语义向量匹配 → paraphrase-multilingual-MiniLM-L12-v2（已集成，中文准确）
     ↓ (低于阈值或模型不可用)
 [5] 关键词兜底 → skills.json 的 keywords 字段
     ↓
@@ -136,7 +136,7 @@ SkillRouter/
 - **语义层**：用 sentence-transformers 把你的输入和技能描述都转成 384 维向量，算余弦相似度。阈值 0.40。
 - **关键词层**：语义没命中时，用 `skills.json` 里的 `keywords` 做纯文本匹配。
 
-**换中文模型**：把 `recommend.py` 和 `build_vector_index.py` 里的模型名从 `all-MiniLM-L6-v2`（英文，80MB）换成 `paraphrase-multilingual-MiniLM-L12-v2`（多语言，470MB），中文语义匹配从随机变成准确。
+**模型说明**：当前使用 `paraphrase-multilingual-MiniLM-L12-v2`（多语言，~470MB），中文语义匹配准确。如需切换回纯英文轻量模型，把两个文件里的模型名改回 `all-MiniLM-L6-v2`（80MB）。
 
 ---
 
