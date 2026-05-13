@@ -1,5 +1,10 @@
-# SkillRouter state file (user-specific, don't commit)
+# State file (user-specific)
 .enabled
+
+# Vector files (generated locally by build_vector_index.py)
+skills_vectors_en.npy
+skills_vectors_zh.npy
+skills_vectors.npy
 
 # Python cache
 __pycache__/
@@ -11,6 +16,9 @@ hooks/diag.py
 hooks/diag.js
 hooks/diag.sh
 hooks/mini.py
+hooks/diagnose.py
+hooks/forensic.py
+hooks/forensic2.py
 
 # IDE
 .vscode/
@@ -19,3 +27,7 @@ hooks/mini.py
 # OS
 .DS_Store
 Thumbs.db
+
+# Python virtual env
+venv/
+.venv/
