@@ -198,14 +198,34 @@ def main():
     print(f'  3. Local semantic:         {local_ok}')
     print(f'{"─" * 55}')
 
-    print(f'\n[!] IMPORTANT: Restart Claude Code in NORMAL mode.')
-    print(f'    Do NOT use --bare flag (bare mode disables hooks).')
-    print(f'    Just run: claude')
-    print(f'\nTry in CC dialog:')
-    print(f'  --skill-status  (view status)')
-    print(f'  --skill-list    (list all skills)')
-    print(f'  --skill-debug   (full diagnostic)')
-    print(f'\nThen just chat normally — skills load automatically.')
+    print(f'''
+╔══════════════════════════════════════════════════════════════╗
+║  ⚠️  READ THIS — or SkillRouter won't work!                  ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                              ║
+║  Restart Claude Code. Then type: --skill-status              ║
+║                                                              ║
+║  ✅ See a response? → You're good.                           ║
+║  ❌ No response? → You're in --bare mode.                    ║
+║                                                              ║
+║  BARE MODE: The #1 reason SkillRouter "doesn't work".        ║
+║                                                              ║
+║  Fix: Don't run "claude --bare". Just run "claude".          ║
+║       Model is in settings.json, not in the command.         ║
+║       If you have a custom .cmd/.sh shortcut, open it        ║
+║       and delete the "--bare" part.                          ║
+║                                                              ║
+║  不管你把模型换成什么 (DeepSeek, OpenAI...)，启动命令        ║
+║  永远是 "claude"。模型在 settings.json 里配置，跟命令        ║
+║  没关系。不需要 claude-ds、claude-opus 之类的东西。          ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝''')
+    print(f'  Try in CC:')
+    print(f'    --skill-status  View router status')
+    print(f'    --skill-list    List all {len(entries) if root else "?"} skills')
+    print(f'    --skill-debug   Full diagnostic')
+    print(f'    --skill-off     Disable')
+    print(f'    --skill-on      Re-enable')
 
 
 if __name__ == '__main__':

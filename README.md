@@ -58,11 +58,36 @@ AI:   >> 🟢 已开启 <<
 
 ## 📦 安装 / Install
 
+### ⚠️ 装前必读 — 别让安装白费 / Read Before Installing
+
+**99% 的"装了没用"都是同一个原因：启动了 `--bare` 模式。**
+
+当你装好 Claude Code 之后，可能会有这些启动方式——全部检查一遍：
+
+| 你可能是这样启动的 | 检查什么 |
+|---|---|
+| 终端打 `claude` | ✅ 正常，没问题 |
+| 终端打 `claude --bare` | ❌ **删掉 `--bare`** |
+| 终端打 `claude-ds` / `claude-opus` / 其他名字 | ⚠️ 打开那个文件，看里面有没有 `--bare` |
+| 桌面快捷方式 / .cmd / .sh 脚本 | ⚠️ 打开那个文件，搜 `bare`，有就删 |
+| VS Code / JetBrains 插件 | ⚠️ 看插件设置里有没有 bare 选项，关掉 |
+
+**自查方法**：重启 CC 后，打 `--skill-status`。如果回复了状态信息 → 装好了。如果没反应 → 你在 bare 模式，hooks 是关的。
+
+> **bare 模式会让 Claude Code 禁用所有 hook。SkillRouter 是 hook 驱动的，bare 模式下等于没装。**
+> 
+> 但这不是 bug——这是你的 Claude Code 设置问题。关掉 bare，立马就好。
+
+#### 关于启动命令 / About the startup command
+
+**不管你把模型换成了 DeepSeek / OpenAI / 其他什么，启动命令都是 `claude`。**
+
+模型是在 `~/.claude/settings.json` 里配的，跟启动命令没关系。不需要 `claude-ds`、`claude-opus` 之类的——如果你有这些，那是你自己创建的快捷方式，查一下里面有没有 `--bare` 就行。
+
 ### 前提 / Prerequisites
 
 - Python 3.10+
-- Claude Code（别开 `--bare` 模式！bare 会关掉所有 hooks）
-- Claude Code (don't use `--bare` mode! It disables all hooks)
+- Claude Code（**不要 --bare！**）
 
 ### 三步搞定 / 3 Steps
 
@@ -79,8 +104,8 @@ pip install sentence-transformers  # 可选/optional — 本地语义路由
 python install.py
 ```
 
-**重启 Claude Code（不要 --bare！），搞定。**  
-**Restart Claude Code (without --bare!), done.**
+**重启 Claude Code，打 `--skill-status` 验证。看到回复 → 搞定。**  
+**Restart Claude Code, type `--skill-status`. See a response? Done.**
 
 ---
 
@@ -196,23 +221,43 @@ python build_vector_index.py
 ## ❓ FAQ
 
 <details>
+<summary><b>Q: 装完没反应？打了 --skill-status 什么都没发生？</b></summary>
+<b>99% 是 --bare 模式。</b><br>
+你启动 CC 的命令里带了 <code>--bare</code>。检查你的终端启动命令、快捷方式、.cmd/.sh 脚本。<br>
+删掉 <code>--bare</code>，重启 CC，再打 <code>--skill-status</code>，有回复就对了。<br>
+<em>Read the "Before Installing" section above for the full checklist.</em>
+</details>
+
+<details>
+<summary><b>Q: 我换了 DeepSeek 模型，启动命令是不是要变？</b></summary>
+<b>不用。永远是 <code>claude</code>。</b><br>
+模型是在 <code>~/.claude/settings.json</code> 里配置的（<code>"model": "deepseek-v4-pro"</code>），跟启动命令无关。<br>
+不需要 <code>claude-ds</code>、<code>claude-opus</code> 之类的——如果你有这些文件，那是你自己建的快捷方式，打开看有没有 <code>--bare</code> 就行。<br>
+<em>No. The command is always <code>claude</code>. The model is configured in settings.json, not in the startup command.</em>
+</details>
+
+<details>
 <summary><b>Q: 会拖慢 Claude Code 吗？</b></summary>
-关键词匹配 < 0.1ms，LLM 路由 ~500ms，语义匹配 ~50ms。几乎无感。首次加载模型需要 1-2 秒（之后走缓存）。
+关键词匹配 < 0.1ms，LLM 路由 ~500ms，语义匹配 ~50ms。几乎无感。首次加载模型需要 1-2 秒（之后走缓存）。<br>
+<em>Keyword < 0.1ms, LLM ~500ms, semantic ~50ms. Barely noticeable.</em>
 </details>
 
 <details>
 <summary><b>Q: 怎么知道技能到底加载了没？</b></summary>
-AI 回复开头会显示 <code>>> ⚡ 技能已加载: xxx</code>。看不到这行就是没加载。
+AI 回复开头会显示 <code>>> ⚡ 技能已加载: xxx</code>。看不到这行就是没加载。<br>
+<em>The AI's reply will start with <code>>> ⚡ Skill loaded: xxx</code>.</em>
 </details>
 
 <details>
 <summary><b>Q: 没有 API Key 怎么办？</b></summary>
-没关系。关键词匹配永远可用。装 sentence-transformers 后，本地双语 BGE 模型也永远可用。纯离线都能跑。
+没关系。关键词匹配永远可用。装 <code>sentence-transformers</code> 后，本地双语 BGE 模型也永远可用。纯离线都能跑。<br>
+<em>No problem. Keyword matching always works. Install sentence-transformers for offline local semantic matching.</em>
 </details>
 
 <details>
-<summary><b>Q: --bare 是什么？为什么不能用？</b></summary>
-<code>claude --bare</code> 是 Claude Code 的"精简模式"，会<b>关掉所有 hooks</b>。SkillRouter 依赖 hooks 工作，所以必须用正常模式。直接打 <code>claude</code>（不加 --bare）就行。
+<summary><b>Q: 能关掉吗？怎么关？</b></summary>
+打 <code>--skill-off</code> 或 <code>/skilloff</code>。想聊理论、问概念的时候关掉就行。打 <code>--skill-on</code> 重新开。<br>
+<em>Type --skill-off or /skilloff to disable. --skill-on to re-enable.</em>
 </details>
 
 <details>
