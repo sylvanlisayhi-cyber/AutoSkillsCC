@@ -1,410 +1,234 @@
-# AutoSkillsCC 🛜
+# AutoSkillsCC
 
 <p align="center">
-  <b>你打字，它猜你要什么技能。自动的。零操作。</b>
+  <b>打字就能自动加载 Claude Code 技能。不用每次手动指定。</b>
   <br>
-  <i>Type normally. It figures out which skill you need. Automatically. Zero effort.</i>
+  <i>Auto-load Claude Code skills by just typing. No manual skill selection needed.</i>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-blue?logo=python" alt="Python">
   <img src="https://img.shields.io/badge/Claude%20Code-Hook-green?logo=claude" alt="Claude Code Hook">
   <img src="https://img.shields.io/badge/license-MIT-orange" alt="License">
-  <img src="https://img.shields.io/badge/%E5%8F%8C%E8%AF%AD-Bilingual-purple" alt="Bilingual">
 </p>
 
 ---
 
-## 🤔 干嘛的？ / What does this do?
+## 它能干嘛？
 
-你用 Claude Code 写代码。你有技能文件（`SKILL.md`）。但你不想每次都说"请按前端规范回答"——烦死了。
+你用 Claude Code 写代码的时候，可能建了一些 `SKILL.md` 文件来规范 AI 的行为（比如前端规范、测试规范）。问题是每次都得手动告诉 CC "请按 XX 规范回答"，很烦。
 
-**AutoSkillsCC 替你干这件事。** 你正常打字，它后台自动分析你的意图，找到最合适的技能，无声注入。你甚至不知道它干活了——直到你看到 AI 回复得特别专业。
+这个工具帮你自动干这件事。你在聊天框正常打字，它后台分析你想干嘛，匹配到合适的技能就自动注入到上下文里。你什么都不用做，AI 回复直接按规范来。
 
-You have skill files (`SKILL.md`) for Claude Code. You don't want to manually tell Claude "please follow the frontend guidelines" every single time.
-
-**AutoSkillsCC does it for you. Silently.** You type. It watches. It matches. You get professional results. You do nothing.
-
----
-
-## 🎬 效果 / See It In Action
-
-### 日常使用（零操作）
+### 实际效果
 
 ```
 你:   帮我写一个带搜索的表格组件
-      ↓ （后台自动匹配 frontend-design + testing 技能，你什么都没做）
+      ↓ 后台自动匹配 frontend-design + testing
 AI:   >> ⚡ 技能已加载: frontend-design, testing <<
-      [输出含 TypeScript 类型、Tailwind CSS、单元测试的工业级代码]
+      [按前端规范和测试规范输出的代码]
 ```
 
-### 魔法指令（打字就行）
+### 开关控制
+
+直接在聊天框输入以下命令：
 
 ```
-你:   --skill-on
-AI:   >> 🟢 技能自动加载：已开启 <<
-
-你:   --skill-status
-AI:   >> 🟢 技能状态：已开启 | 已注册 18 个技能 <<
-
-你:   --skill-off
-AI:   >> 🔴 技能自动加载：已关闭 <<
-
-你:   --skill-list
-AI:   >> 📋 已注册技能 (18) <<
+--skill-on        开启
+--skill-off       关闭
+--skill-status    看状态
+--skill-list      列出所有技能
+--skill-debug     诊断信息
 ```
 
-| 指令 | 作用 |
-|---|---|
-| `--skill-status` | 查看状态 |
-| `--skill-list` | 列出所有技能 |
-| `--skill-on` | 开启自动加载 |
-| `--skill-off` | 关闭自动加载 |
-| `--skill-debug` | 完整诊断 |
+回复示例：
+
+```
+>> 🟢 技能状态：已开启 | 已注册 18 个技能 <<
+```
 
 ---
 
-## 📦 安装 / Install
+## 安装
 
-### 第 0 步：准备工作（3 样东西）/ Prerequisites
+### 前提
 
-装 AutoSkillsCC 之前，这三样东西得有。没装过跟着教程走，5 分钟搞定。
-
-You need these three things. Follow the guides below, 5 minutes tops.
-
----
-
-#### 🐍 Python 3.10+
-
-打开终端，输入： / Open a terminal and type:
+需要 Python 3.10 或更高版本，以及 Claude Code CLI（终端版，Web 版和 IDE 插件版不支持）。
 
 ```bash
-python --version
-# 或 / or
-python3 --version
+python --version        # 确认版本 ≥ 3.10
+npm install -g @anthropic-ai/claude-code   # 如果还没装 CC
 ```
 
-看到 `Python 3.10.x` / `3.11.x` / `3.12.x` / `3.13.x` → 有了，跳过。  
-没装？去 https://www.python.org/downloads/ 点黄色按钮下载。⚠️ **勾上 "Add Python to PATH"**（很多人忘记这步）。
-
-If you see `Python 3.10.x` or higher, skip. Otherwise download from the link above.
-
----
-
-#### 💻 Claude Code 终端版
-
-> ⚠️ AutoSkillsCC 只支持 **Claude Code CLI**（命令行工具）。Web 版、VS Code / JetBrains 插件版没有 Hook 系统，装了也没用。
-
-装 Claude Code CLI：
+### 安装步骤
 
 ```bash
-npm install -g @anthropic-ai/claude-code
+git clone https://github.com/sylvanlisayhi-cyber/AutoSkillsCC.git
+cd AutoSkillsCC
+pip install -r requirements.txt
+python install.py
 ```
 
-（没有 npm？去 https://nodejs.org 装 Node.js LTS 版本）
+`install.py` 会自动做以下事情：
+- 扫描你的 CC 启动脚本，如果有 `--bare` 就自动去掉（bare 模式会禁用 hook）
+- 扫描 `~/.claude/skills/` 目录，注册你已有的技能
+- 生成 `skills.json`（技能注册表）
+- 构建中英文向量索引（如果装了 sentence-transformers）
+- 写入 CC 的 hook 配置到 `~/.claude/settings.json`
 
-装完在终端打 `claude`，看到 Claude Code 界面 → 装好了。
+装完**重启 Claude Code**，输入 `--skill-status` 验证。如果没反应，99% 是 `--bare` 模式没去掉，再跑一次 `python install.py`。
 
----
+### API Key（可选）
 
-#### 🔑 AI API Key（可选 / Optional）
+不配 API Key 也能用。关键词匹配和本地语义模型永远生效——纯离线跑。
 
-AutoSkillsCC 的关键词匹配和本地语义模型永远可用——**纯离线都能跑。**  
-API Key 只是让 LLM 精选层更准（可选，约 500ms 额外延迟）。
+如果配了 API Key，LLM 精选层会更准（多 500ms 延迟）：
 
-| 你用的模型 | 需要什么 Key | 去哪拿 |
+| 你在用的模型 | 环境变量 | Key 获取地址 |
 |---|---|---|
 | Claude | `ANTHROPIC_API_KEY` | https://console.anthropic.com |
 | DeepSeek | `DEEPSEEK_API_KEY` | https://platform.deepseek.com |
 | OpenAI | `OPENAI_API_KEY` | https://platform.openai.com |
 
-设置环境变量（Windows PowerShell）：
+设置方式（Windows PowerShell）：
 
 ```powershell
-[Environment]::SetEnvironmentVariable('DEEPSEEK_API_KEY', 'sk-你的key', 'User')
+[Environment]::SetEnvironmentVariable('DEEPSEEK_API_KEY', 'sk-xxx', 'User')
 # 设完重启终端
 ```
 
 macOS / Linux：
 
 ```bash
-echo 'export DEEPSEEK_API_KEY=sk-你的key' >> ~/.zshrc
+echo 'export DEEPSEEK_API_KEY=sk-xxx' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-> 没有 API Key？完全没关系。关键词匹配（Layer 1）永远可用。装了 `sentence-transformers` 的话，本地语义（Layer 3）也永远可用。纯离线都能跑。
+工具会自动检测你配了哪个 Key，用哪个 Provider。
 
 ---
 
-### 第 1 步：克隆项目 / Clone
+## 技能放哪里？
 
-```bash
-git clone https://github.com/sylvanlisayhi-cyber/AutoSkillsCC.git
-cd AutoSkillsCC
-```
-
-### 第 2 步：装依赖 / Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-（`numpy` 必装；`sentence-transformers` 可选，装了能离线语义匹配）
-
-### 第 3 步：一键安装 / Run Installer
-
-```bash
-python install.py
-```
-
-自动干五件事：
-1. 🔍 扫描你有没有 `--bare`，有就自动修
-2. 📂 扫描 `~/.claude/skills/` 目录，找到你的技能
-3. 📋 生成技能注册表（`skills.json`）
-4. 🧠 构建中英文双语向量索引
-5. ⚙️ 写入 Claude Code Hook 配置
-
-### 第 4 步：重启验证 / Restart & Verify
-
-**重启 Claude Code（关掉重开），然后打：**
+技能就是一个目录 + 一个 `SKILL.md` 文件，全放在 `~/.claude/skills/` 下。
 
 ```
---skill-status
-```
+~/.claude/skills/              # macOS / Linux
+C:\Users\你\.claude\skills\    # Windows
 
-看到这个 → 搞定 🎉
-
-```
->> 🟢 技能状态：已开启 | 已注册 18 个技能 <<
-```
-
-> ❌ 没反应？你在 `--bare` 模式。再跑一次 `python install.py` 让它自动修，然后重启 CC。
-
----
-
-## 📂 技能放哪里？（重点！）/ Where to Put Skills
-
-**这是最重要的部分。技能就是 markdown 文件，放在一个固定目录就行。**
-
-This is the most important part. Skills are just markdown files in a specific folder.
-
-### 目录结构 / Folder Structure
-
-```
-C:\Users\你的用户名\.claude\skills\    ← Windows
-  或
-~/.claude/skills/                      ← macOS / Linux
-
-├── frontend-design/        ← 技能名 = 目录名
-│   └── SKILL.md           ← 技能内容（怎么写都行）
-│
+├── frontend-design/
+│   └── SKILL.md       ← 文件名固定，内容随便写
 ├── testing/
 │   └── SKILL.md
-│
-├── my-awesome-skill/       ← 你自己建的也放这
-│   └── SKILL.md
-│
-└── ...
+└── 你自己建的/
+    └── SKILL.md
 ```
 
-### 规则只有两条 / Only Two Rules
+两条规则：目录名 = 技能名，文件名叫 `SKILL.md`。没了。
 
-| | |
-|---|---|
-| 1️⃣ 每个技能 = 一个**目录** | 目录名就是技能名（`frontend-design`、`testing`……） |
-| 2️⃣ 目录里放一个 **SKILL.md** | 文件名必须是 `SKILL.md`，内容随便写 |
+### 系统自带的技能
 
-### 示例：创建一个技能 / Example
+就算目录是空的，系统内置了 18 个技能的关键词，能匹配常见需求：
+
+frontend-design, docx, pdf, pptx, xlsx, python-dev, database-design, docker-container, debugging, testing, git-workflow, api-design, performance-optimization, security-audit, refactoring, cli-tool, data-analysis, ok-person
+
+这些内置技能靠关键词匹配，不需要 `SKILL.md` 文件也能触发。如果你自己建了同名目录并写了 `SKILL.md`，内容会被读取注入。
+
+### 添加你自己的技能
 
 ```bash
-# 1. 建目录
-mkdir -p ~/.claude/skills/my-cool-skill
+# 1. 建目录写文件
+mkdir -p ~/.claude/skills/my-skill
+nano ~/.claude/skills/my-skill/SKILL.md
 
-# 2. 写 SKILL.md（用任意编辑器）
-nano ~/.claude/skills/my-cool-skill/SKILL.md
-```
-
-SKILL.md 内容示例：
-
-```markdown
-# My Cool Skill
-
-When the user asks for Python code:
-- Always add type hints
-- Use f-strings for formatting
-- Include docstrings for all functions
-```
-
-### 内置技能（开箱即用）/ Built-in Skills
-
-没建技能目录也能用。AutoSkillsCC 内置了 18 个预定义技能：
-
-| 技能 | 描述 |
-|---|---|
-| `frontend-design` | React/Vue 组件开发、Tailwind CSS、响应式布局 |
-| `docx` | Word 文档生成与编辑 |
-| `pdf` | PDF 生成、读取、解析 |
-| `pptx` | PPT 演示文稿创建 |
-| `xlsx` | Excel 表格处理 |
-| `python-dev` | Python 后端开发、FastAPI/Django/Flask |
-| `database-design` | 数据库设计、SQL 优化、MySQL/PostgreSQL |
-| `docker-container` | Docker 容器化、K8s 编排 |
-| `debugging` | 代码调试、错误堆栈分析 |
-| `testing` | 自动化测试、单元测试、E2E |
-| `git-workflow` | Git 工作流、分支管理、PR 审查 |
-| `api-design` | RESTful/GraphQL API 设计 |
-| `performance-optimization` | 性能优化、缓存策略 |
-| `security-audit` | 安全审计、XSS/CSRF/JWT |
-| `refactoring` | 代码重构、Clean Code |
-| `cli-tool` | CLI 命令行工具开发 |
-| `data-analysis` | 数据分析、Pandas/NumPy/Matplotlib |
-| `ok-person` | ok 人 |
-
----
-
-## 🔧 添加新技能 / Add a New Skill
-
-```bash
-# 1. 创建技能目录
-mkdir -p ~/.claude/skills/my-awesome-skill
-nano ~/.claude/skills/my-awesome-skill/SKILL.md
-# 写下你的规范 / Write your guidelines
-
-# 2. 编辑 skills.json，加条目
-# {
-#   "name": "my-awesome-skill",
-#   "description": "当用户要做X时，按Y规范执行",
+# 2. 在 skills.json 里注册
+# 加一条：{
+#   "name": "my-skill",
+#   "description": "一句话描述",
 #   "keywords": ["关键词1", "keyword2"]
 # }
 
-# 3. 重建向量索引
+# 3. 重建索引
 python build_vector_index.py
-
-# 完成！无需重启 / Done! No restart needed.
 ```
+
+不需要重启 CC。
 
 ---
 
-## 🧠 工作原理 / How It Works
+## 怎么工作的
+
+三层路由，一层没命中就落到下一层：
 
 ```
-你的消息 / Your message
-         ↓
-┌─────────────────────────────────┐
-│ Layer 1: 关键词匹配     < 0.1ms │  ← 零延迟，首先尝试
-│           Keyword Match         │
-├─────────────────────────────────┤
-│ Layer 2: LLM API 路由   ~500ms  │  ← 自动检测你用的 AI
-│           Dynamic AI Detection  │
-├─────────────────────────────────┤
-│ Layer 3: 本地语义模型   ~50ms   │  ← BGE 双语模型兜底
-│           Bilingual BGE Model   │
-└─────────────────────────────────┘
-         ↓
-  Ensemble 融合 (BM25 × 0.3 + Vector × 0.7)
-         ↓
-  MMR 多样性选择（避免技能扎堆，λ = 0.6）
-         ↓
-  LLM 精选（从 5 个候选挑 1~3 个）
-         ↓
-  读取 SKILL.md → 注入上下文 → AI 按规范回复 ✅
+你的消息
+    ↓
+Layer 1: 关键词匹配（< 0.1ms）
+    BM25 算法，纯 Python，零额外依赖，缓存到磁盘
+    ↓ 无匹配？
+Layer 2: LLM API 路由（~500ms）
+    自动检测你的 API Key，用对应模型做精选
+    ↓ 无 Key 或无匹配？
+Layer 3: 本地语义模型（~50ms）
+    BGE 双语模型（中/英各一个），首次加载 1-2s，之后全缓存
+    ↓
+Ensemble 融合（BM25 × 0.3 + 向量 × 0.7）
+    ↓
+MMR 多样性选择（λ=0.6，避免选出来全是相似技能）
+    ↓
+LLM 精选（从 TOP 5 里挑 1~3 个最合适的）
+    ↓
+读取对应 SKILL.md → 注入到上下文 → AI 按规范回复
 ```
 
-### 🎯 自动检测你用的 AI
-
-你用什么 AI，AutoSkillsCC 就用什么 AI。不需要配置。
-
-```
-ANTHROPIC_API_KEY → OPENAI_API_KEY → DEEPSEEK_API_KEY → MOONSHOT_API_KEY
-```
-
-没有 API Key？本地 BGE 双语模型自动顶上。纯离线也能跑。
+Provider 检测顺序：`ANTHROPIC_API_KEY → OPENAI_API_KEY → DEEPSEEK_API_KEY → MOONSHOT_API_KEY`。都没有就用本地模型。
 
 ---
 
-## 📁 项目结构 / Project Structure
+## 项目文件
 
 ```
 AutoSkillsCC/
 ├── hooks/
-│   └── recommend.py          ← 核心 hook，每次你打字都跑一次
-├── build_vector_index.py     ← 双语向量编译器（加新技能后跑一次）
-├── install.py                ← 一键安装脚本
-├── skills.json               ← 技能注册表（18 个预设技能）
-├── skills_vectors_en.npy     ← 英文向量索引
-├── skills_vectors_zh.npy     ← 中文向量索引
-└── README.md
+│   ├── recommend.py       # 主 hook，每次发消息时执行
+│   └── cmd.py             # 轻量命令 hook（保留，未注册）
+├── build_vector_index.py  # 向量索引编译（加新技能后跑）
+├── install.py             # 一键安装
+├── benchmark.py           # 27 个测试用例的准确率评测
+├── skills.json            # 技能注册表
+├── skills_vectors_en.npy  # 英文向量
+├── skills_vectors_zh.npy  # 中文向量
+└── requirements.txt       # numpy + sentence-transformers
 ```
 
 ---
 
-## 🧪 测试 / Testing
+## FAQ
 
-```bash
-python benchmark.py
-```
+**装完没反应？**
+99% 是 CC 启动命令里带了 `--bare`。`python install.py` 会自动扫描并修复，然后重启 CC。
 
-运行 27 个测试用例，验证路由准确率。
+**会拖慢回复吗？**
+不会。关键词 <1ms，语义 ~50ms，LLM ~500ms。体感无延迟。
 
----
+**怎么知道技能加载了？**
+AI 回复第一行显示 `>> ⚡ 技能已加载: xxx`，没看到就是没加载。
 
-## ❓ FAQ
+**没有 API Key 能用吗？**
+能。关键词匹配永远可用。装了 `sentence-transformers`，本地语义也永远可用。纯离线。
 
-<details>
-<summary><b>Q: 装完没反应？打 --skill-status 什么都没发生？</b></summary>
-<b>99% 是 --bare 模式。</b><br>
-你启动 CC 的命令里带了 <code>--bare</code>。重新跑 <code>python install.py</code>，它会自动扫描并修复。<br>
-<em>99% it's --bare. Re-run install.py for auto-fix.</em>
-</details>
+**怎么关？**
+输入 `--skill-off`，聊理论/概念的时候关掉。`--skill-on` 重新开。
 
-<details>
-<summary><b>Q: 会拖慢 Claude Code 吗？</b></summary>
-关键词 < 0.1ms，LLM ~500ms，语义 ~50ms。几乎无感。首次加载模型 1-2 秒（之后走缓存）。<br>
-<em>Keyword < 0.1ms, LLM ~500ms, semantic ~50ms. Barely noticeable.</em>
-</details>
+**和 autoskills / AutoSkill 的区别？**
+- [autoskills](https://github.com/midudev/autoskills)（midudev）：扫描你的技术栈，帮你下载技能文件
+- [AutoSkill](https://github.com/ECNU-ICALK/AutoSkill)（ECNU）：从对话中自动提取、进化技能
+- AutoSkillsCC（本项目）：运行时实时匹配并注入技能到 CC
 
-<details>
-<summary><b>Q: 怎么知道技能到底加载了没？</b></summary>
-AI 回复第一行会显示 <code>>> ⚡ 技能已加载: xxx</code>。看不到就是没加载。<br>
-<em>AI's reply starts with <code>>> ⚡ Skill loaded: xxx</code>.</em>
-</details>
-
-<details>
-<summary><b>Q: 没有 API Key 怎么办？</b></summary>
-没关系。关键词永远可用。装 <code>sentence-transformers</code> 后本地语义也永远可用。纯离线。<br>
-<em>No API key needed. Keyword matching always works. Install sentence-transformers for offline semantic matching.</em>
-</details>
-
-<details>
-<summary><b>Q: 能关掉吗？</b></summary>
-打 <code>--skill-off</code>。聊理论的时候关掉。打 <code>--skill-on</code> 重新开。<br>
-<em>Type --skill-off to disable, --skill-on to re-enable.</em>
-</details>
-
-<details>
-<summary><b>Q: 支持哪些系统？</b></summary>
-Windows / macOS / Linux，Python 3.10+。
-</details>
-
-<details>
-<summary><b>Q: 和 autoskills、AutoSkill 是什么关系？</b></summary>
-<b>互补，不竞争。</b><br>
-<code>autoskills</code>（midudev）= 帮你<b>下载</b>技能文件到本地<br>
-<code>AutoSkill</code>（ECNU）= 帮你从对话中<b>自动生成</b>技能<br>
-<code>AutoSkillsCC</code>（本项目）= 帮你<b>实时匹配并注入</b>技能到 CC<br>
-<em>autoskills downloads skills. AutoSkill generates skills. AutoSkillsCC matches and injects them in real-time for Claude Code.</em>
-</details>
+三个项目定位不同，互补不冲突。
 
 ---
 
-## 📄 License
+## License
 
-MIT — 随便用，随便改，随便发。
-
----
-
-<p align="center">
-  <sub>Made with ❤️ · 用 Claude Code 写 Claude Code 的插件</sub>
-  <br>
-  <sub>AutoSkillsCC · 打字即匹配，无声注入</sub>
-</p>
+MIT
