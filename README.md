@@ -1,9 +1,7 @@
 # AutoSkillsCC
 
 <p align="center">
-  <b>增强 Claude Code 的技能匹配——更准、更多样、离线也工作。</b>
-  <br>
-  <i>Better skill matching for Claude Code — more accurate, more diverse, works offline.</i>
+  <b>Better skill matching for Claude Code — multi-layer routing, multi-skill loading, works offline.</b>
 </p>
 
 <p align="center">
@@ -14,65 +12,138 @@
 
 ---
 
-## 定位 / What this is
+## What this is
 
-Claude Code 原生支持把 `SKILL.md` 放在 `~/.claude/skills/` 下，根据 description 自动匹配加载。这功能本身就不错。
+Claude Code can natively auto-load skills from `~/.claude/skills/`. You put a folder with a `SKILL.md` in it, CC matches your input against each skill's description, and loads the best match. It's a solid feature.
 
-AutoSkillsCC 是它的**增强层**，不是替代。你仍然用官方的方式管理技能文件，AutoSkillsCC 在 Hook 层做更精细的匹配和注入。
+AutoSkillsCC is an **enhancement layer** on top of it, installed as a CC Hook. You still manage your skill files the official way. AutoSkillsCC intercepts every message before it reaches the model and does more careful matching, then injects the matched skill content into the prompt.
 
-Claude Code natively auto-loads skills from `~/.claude/skills/` by matching your input against each skill's description. That works fine on its own.
-
-AutoSkillsCC is a matching **upgrade** on top of it. You still manage skills the official way. AutoSkillsCC sits in the Hook layer and does more careful matching and injection.
+Think of it as: CC native does basic matching. AutoSkillsCC does the same thing, but with a more sophisticated matching pipeline, plus a few things native doesn't do at all.
 
 ---
 
-## 比原生多了什么 / What it adds
+## What it adds over native
 
-| | CC 原生 | AutoSkillsCC |
+| | CC Native | AutoSkillsCC |
 |---|---|---|
-| 匹配方式 | 语义匹配 | BM25 关键词 + BGE 双语向量 + LLM 精选，三层融合 |
-| 一次加载几个 | 1 个 | 最多 3 个，MMR 保证不重复 |
-| 没有 SKILL.md 时 | 不工作 | 18 个内置关键词库兜底，纯离线也能命中 |
-| 中文支持 | 靠 description | 独立中文关键词库 + 中文 BGE 模型 |
-| 理论问题 | 可能误触发 | 意图过滤器自动跳过"什么是/why"类问题 |
-| 开关 | 无 | `--skill-on / --skill-off / --skill-status` |
-| 可见性 | 不知道加载了啥 | 回复首行明确显示 `>> ⚡ 技能已加载: xxx` |
+| **Matching** | Single semantic match on description | BM25 keyword + BGE bilingual vector + LLM, fused into one score |
+| **How many skills** | 1 | Up to 3 at once, with MMR diversity to avoid loading similar skills |
+| **Without SKILL.md** | Does nothing | 18 built-in keyword profiles still match and guide behavior |
+| **Chinese input** | Relies on description text | Dedicated Chinese keyword library + Chinese BGE model |
+| **Theory questions** | May falsely trigger | Intent filter automatically skips "what is / explain / why" type questions |
+| **On/off** | None | `--skill-on` / `--skill-off` / `--skill-status` typed directly in chat |
+| **Transparency** | You don't know what loaded | Reply starts with `>> ⚡ Skill loaded: skill-name` |
 
 ---
 
-## 效果 / See it
+## Demo
+
+Type normally. If your request matches any skill, it gets injected automatically:
 
 ```
-你:   帮我写一个带搜索的表格组件
-      ↓ 三层路由 → 匹配到 frontend-design + testing
-AI:   >> ⚡ 技能已加载: frontend-design, testing <<
-      [按前端规范 + 测试规范的代码]
+You:  build a data table component with search and unit tests
+      ↓ matches frontend-design + testing
+AI:   >> ⚡ Skill loaded: frontend-design, testing <<
+      [Code following your frontend and testing guidelines]
 ```
 
-控制命令，直接在聊天框输入：
+Built-in control commands — just type these in the chat:
 
 ```
---skill-on        开启
---skill-off       关闭
---skill-status    查看状态和技能数
---skill-list      列出所有技能
---skill-debug     诊断信息
+--skill-on        Enable auto-loading
+--skill-off       Disable auto-loading
+--skill-status    Show status and registered skill count
+--skill-list      List all skills
+--skill-debug     Full diagnostic report
+```
+
+Example output:
+
+```
+>> 🟢 Skill Status: Enabled | 18 skills registered <<
 ```
 
 ---
 
-## 安装 / Install
+## How matching works
 
-### 前提 / Prerequisites
+When you send a message, three layers run in sequence. If a layer produces a confident match, the result is used. Otherwise it falls through to the next one.
 
-Python 3.10+，Claude Code CLI（终端版，Web 版和 IDE 插件版不支持 Hook）。
+```
+Your message
+    ↓
+Magic command? → --skill-on/off/status handled instantly, no routing
+    ↓
+Intent filter → "what is / why / explain" questions skip entirely
+    ↓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Layer 1: BM25 Keyword (< 0.1ms)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Pure Python TF-IDF, zero dependencies
+  Tokenizes both English words and individual CJK characters
+  Scores each skill's name + description + keywords against your input
+  Result cached to disk (~5ms on subsequent runs)
+    ↓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Layer 2: BGE Bilingual Vector (~50ms)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Auto-detects input language (Chinese or English)
+  English → bge-small-en-v1.5 (33MB)
+  Chinese → bge-small-zh-v1.5 (33MB)
+  Computes cosine similarity between your input vector and all skill vectors
+  First load takes 1-2 seconds (model download + warmup), then cached
+    ↓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Ensemble Fusion
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  final_score = BM25 × 0.3 + Vector × 0.7
+  Both scores normalized to 0~1 before fusion
+  Skills below 0.10 are discarded
+    ↓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MMR Diversity Selection
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  λ = 0.6 (60% relevance, 40% diversity)
+  Greedy algorithm:
+    1. Pick the highest-scoring skill
+    2. For each remaining candidate, compute:
+       mmr = 0.6 × relevance - 0.4 × max_similarity_to_selected
+    3. Repeat until top 5 are selected
+  Similarity matrix is precomputed → O(1) lookup
+  This prevents loading 3 near-identical skills
+    ↓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Layer 3: LLM Refinement (~500ms)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Sends the top 5 MMR-diversified candidates to an LLM
+  Prompt: "Pick the 1~3 most useful skills for this request"
+  Uses whatever API key you have set (auto-detected)
+  No API key? Falls back to MMR top-3 directly
+    ↓
+Read matched SKILL.md files → inject into prompt → AI responds ✅
+```
+
+**Provider auto-detection order:** `ANTHROPIC_API_KEY` → `OPENAI_API_KEY` → `DEEPSEEK_API_KEY` → `MOONSHOT_API_KEY`
+
+If none are set, Layers 1+2 still run perfectly offline.
+
+**Total latency:** ~60ms without LLM, ~560ms with LLM. Not noticeable.
+
+---
+
+## Install
+
+### Prerequisites
+
+- **Python 3.10 or later** — check with `python --version`
+- **Claude Code CLI** — terminal version only. The web app and VS Code / JetBrains extensions don't support hooks.
 
 ```bash
-python --version        # ≥ 3.10
+python --version        # should be ≥ 3.10
 npm install -g @anthropic-ai/claude-code
 ```
 
-### 安装 / Setup
+### Setup
 
 ```bash
 git clone https://github.com/sylvanlisayhi-cyber/AutoSkillsCC.git
@@ -81,154 +152,190 @@ pip install -r requirements.txt
 python install.py
 ```
 
-`install.py` 会做：扫描并去除启动脚本的 `--bare`、扫描你的 `~/.claude/skills/` 目录、生成 `skills.json`、构建向量索引、写入 CC hook 配置。
+`install.py` does five things automatically:
 
-It'll: fix `--bare` in your startup scripts, scan your skills directory, build the registry and vector index, write hook config.
+1. **Scans for `--bare`** in your CC startup scripts. The `--bare` flag disables hooks entirely — if found, it removes it and backs up the original file.
+2. **Scans `~/.claude/skills/`** for existing skill directories and registers them.
+3. **Generates `skills.json`** — the skill registry used by the matching engine.
+4. **Builds bilingual vector index** — encodes all skills with BGE models (English + Chinese). Requires `sentence-transformers`; if not installed, this step is skipped and only keyword matching runs.
+5. **Writes hook config** to `~/.claude/settings.json` — registers `recommend.py` as a `UserPromptSubmit` hook, plus sets up `/skillstatus`, `/skillon`, etc. as custom CC commands.
 
-装完重启 CC，输入 `--skill-status` 验证。没反应就再跑一次 `python install.py`。
+After install, **restart Claude Code** and type:
 
-Restart CC. Type `--skill-status`. If nothing happens, re-run install.py.
+```
+--skill-status
+```
 
-### API Key（可选 / Optional）
+If you see `>> 🟢 Skill Status: Enabled | 18 skills registered <<` — it's working.
 
-不配也能用。关键词和本地语义模型离线跑。配了 LLM 层更准（多 ~500ms）：
+No response? Your CC is likely running with `--bare`. Re-run `python install.py` and it'll fix it automatically.
 
-| 模型 | 环境变量 | 获取 |
+### API Key (optional)
+
+The keyword and local semantic layers work fully offline. No API key needed.
+
+Adding one enables the LLM refinement layer (Layer 3), which improves multi-skill selection accuracy at the cost of ~500ms latency.
+
+| Provider | Env variable | Get key at |
 |---|---|---|
 | Claude | `ANTHROPIC_API_KEY` | https://console.anthropic.com |
 | DeepSeek | `DEEPSEEK_API_KEY` | https://platform.deepseek.com |
 | OpenAI | `OPENAI_API_KEY` | https://platform.openai.com |
 
-Windows：
+Windows (PowerShell):
 
 ```powershell
 [Environment]::SetEnvironmentVariable('DEEPSEEK_API_KEY', 'sk-xxx', 'User')
+# Restart terminal after setting
 ```
 
-macOS / Linux：
+macOS / Linux:
 
 ```bash
 echo 'export DEEPSEEK_API_KEY=sk-xxx' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-工具自动检测你配了哪个。 / Auto-detects whichever you set.
+The tool auto-detects which provider you've configured. No extra config needed.
 
 ---
 
-## 技能放哪里？ / Where skills live
+## Where skills go
 
-和官方一样——放在 `~/.claude/skills/`。 / Same as official — `~/.claude/skills/`.
+Skills live in `~/.claude/skills/` — the same directory CC natively uses. Each skill is one folder containing one `SKILL.md` file.
 
 ```
 ~/.claude/skills/              # macOS / Linux
-C:\Users\你\.claude\skills\    # Windows
+C:\Users\you\.claude\skills\   # Windows
 
 ├── frontend-design/
-│   └── SKILL.md       # 文件名固定，内容随便写
+│   └── SKILL.md       ← folder name = skill name, file must be SKILL.md
 ├── testing/
 │   └── SKILL.md
-└── 你的技能/
-    └── SKILL.md
+├── my-own-skill/
+│   └── SKILL.md
+└── ...
 ```
 
-规则和官方一样：目录名就是技能名，文件必须叫 `SKILL.md`。
+That's it. No config files, no registration ceremony. Just folders and markdown.
 
-Same rules as official: folder name = skill name, file must be `SKILL.md`.
+SKILL.md content is free-form — write whatever instructions you want the AI to follow when that skill is loaded. The file gets truncated to 6000 characters during injection to avoid blowing up the context window.
 
-### 你没写 SKILL.md 也能用 / Works even without SKILL.md
+### Built-in skill profiles
 
-系统内置了 18 个技能的关键词库。即使 `~/.claude/skills/` 是空的，你的输入匹配到关键词也能命中。
+Even if your `~/.claude/skills/` directory is completely empty, AutoSkillsCC ships with 18 keyword profiles that can still match and guide behavior:
 
-18 built-in keyword profiles that match even if you haven't written any SKILL.md files:
+| Skill | When it triggers |
+|---|---|
+| `frontend-design` | React, Vue, HTML, CSS, Tailwind, component, UI mentions |
+| `docx` | Word document generation, .docx files |
+| `pdf` | PDF generation, reading, parsing |
+| `pptx` | PowerPoint, slides, presentations |
+| `xlsx` | Excel, spreadsheets, CSV, data export |
+| `python-dev` | Python, pip, FastAPI, Django, Flask |
+| `database-design` | SQL, MySQL, PostgreSQL, MongoDB, database queries |
+| `docker-container` | Docker, Dockerfile, Kubernetes, deployments |
+| `debugging` | Bugs, errors, crash, stack trace, fixing code |
+| `testing` | Unit tests, integration tests, E2E, pytest, Jest |
+| `git-workflow` | Git, commits, branches, merge, PR |
+| `api-design` | REST, GraphQL, endpoints, Swagger, OpenAPI |
+| `performance-optimization` | Slow queries, caching, profiling, latency |
+| `security-audit` | XSS, CSRF, JWT, auth, vulnerabilities |
+| `refactoring` | Clean code, code quality, design patterns |
+| `cli-tool` | CLI, terminal, bash, shell scripts |
+| `data-analysis` | Pandas, NumPy, Matplotlib, data visualization |
+| `ok-person` | ok person easter egg |
 
-`frontend-design` `docx` `pdf` `pptx` `xlsx` `python-dev` `database-design` `docker-container` `debugging` `testing` `git-workflow` `api-design` `performance-optimization` `security-audit` `refactoring` `cli-tool` `data-analysis` `ok-person`
+These built-in profiles use keyword matching. They don't have SKILL.md content of their own — they trigger on keywords and guide the AI's domain focus. If you create a folder with the same name and write your own `SKILL.md`, your content overrides the built-in behavior and gets injected normally.
 
-当然，如果你在对应目录下写了 `SKILL.md`，内容会被读取注入——和原生行为一致。
-
-If you do write a `SKILL.md` in a matching folder, its content gets injected — same as native behavior.
-
-### 注册你的技能 / Register your skill
+### Adding your own skill
 
 ```bash
+# 1. Create the folder and write your instructions
 mkdir -p ~/.claude/skills/my-skill
 nano ~/.claude/skills/my-skill/SKILL.md
+```
 
-# 编辑 skills.json，加一条：
+Example `SKILL.md`:
+
+```markdown
+Always follow these rules when writing Go code:
+- Use explicit error handling, never panic
+- Prefer composition over inheritance
+- Name functions starting with the package's primary type
+- Use table-driven tests
+```
+
+```bash
+# 2. Register it in skills.json
+# Add an entry like:
 # {
 #   "name": "my-skill",
-#   "description": "一句话描述 / one-line description",
-#   "keywords": ["关键词", "keyword"]
+#   "description": "Go coding guidelines — error handling, naming, testing",
+#   "keywords": ["go", "golang", "error handling", "testing"]
 # }
 
+# 3. Rebuild the vector index
 python build_vector_index.py
-# 不需要重启
 ```
+
+No restart needed. The hook picks up changes immediately.
 
 ---
 
-## 怎么工作的 / How it works
-
-```
-你的消息 / Your message
-    ↓
-魔法指令？ → --skill-on/off 等直接处理
-    ↓
-意图过滤 → "什么是/why" 等理论问题直接跳过
-    ↓
-Layer 1: BM25 关键词 (< 0.1ms) — 纯 Python，磁盘缓存
-    ↓
-Layer 2: BGE 双语向量 (~50ms) — 中/英模型，首次加载后缓存
-    ↓
-Ensemble: BM25 × 0.3 + Vector × 0.7
-    ↓
-MMR 多样性（λ=0.6）→ 避免选出来全是相似技能
-    ↓
-Layer 3: LLM 精选 (~500ms) — TOP 5 → 挑 1~3 个
-    ↓
-读 SKILL.md → 注入 → AI 回复 ✅
-```
-
-Provider 检测：`ANTHROPIC → OPENAI → DEEPSEEK → MOONSHOT`。都没 Key 则只用前两层。
-
----
-
-## 文件 / Files
+## Project structure
 
 ```
 AutoSkillsCC/
 ├── hooks/
-│   ├── recommend.py       # 主 hook
-│   └── cmd.py             # 轻量命令处理
-├── build_vector_index.py  # 向量编译器
-├── install.py             # 安装脚本
-├── benchmark.py           # 27 个测试用例
-├── skills.json            # 技能注册表
-├── skills_vectors_en.npy  # 英文向量
-├── skills_vectors_zh.npy  # 中文向量
-└── requirements.txt       # numpy + sentence-transformers
+│   ├── recommend.py       # Main hook — runs on every message
+│   └── cmd.py             # Lightweight command handler (reserved, not registered)
+├── build_vector_index.py  # Vector index compiler — run after adding skills
+├── install.py             # One-command installer
+├── benchmark.py           # 27 test cases for accuracy measurement
+├── skills.json            # Skill registry (names, descriptions, keywords)
+├── skills_vectors_en.npy  # Pre-computed English skill vectors
+├── skills_vectors_zh.npy  # Pre-computed Chinese skill vectors
+└── requirements.txt       # numpy (required), sentence-transformers (optional)
 ```
+
+---
+
+## Testing
+
+```bash
+python benchmark.py
+```
+
+Runs 27 test cases covering single-domain, multi-domain, tricky, and edge-case prompts. Reports Top-1, Top-3, Top-5, and MMR accuracy.
 
 ---
 
 ## FAQ
 
-**和 CC 原生技能加载什么关系？**
-增强关系，不是替代。原生做基础匹配，AutoSkillsCC 做更精细的多层匹配 + 多技能并行 + 离线关键词兜底 + 可见性控制。
+**How is this different from CC's native skill loading?**
+It's an enhancement, not a replacement. CC native does single semantic matching on skill descriptions. AutoSkillsCC does multi-layer ensemble matching (keyword + vector + LLM), loads up to 3 diverse skills at once instead of 1, has 18 offline keyword profiles that work even with no SKILL.md files, a dedicated Chinese matching pipeline, an intent filter that skips theory questions, and visible on/off controls. They're compatible — your skills directory is the same, the file format is the same.
 
-It's an enhancement, not a replacement. Native does basic matching. AutoSkillsCC adds multi-layer matching, multi-skill loading, offline keyword fallback, and visibility controls.
+**Nothing happens after install. `--skill-status` returns nothing.**
+Your CC is launched with `--bare`. Re-run `python install.py` and restart CC. It scans for and removes `--bare` from startup scripts automatically.
 
-**装完没反应？**
-CC 启动命令里有 `--bare`。再跑 `python install.py` 自动修，重启 CC。
+**Does it slow down Claude Code?**
+No. Keyword matching takes under 1ms, semantic matching ~50ms, LLM call ~500ms. The user doesn't perceive any delay.
 
-**会拖慢吗？**
-关键词 <1ms，语义 ~50ms，LLM ~500ms。体感不出来。
+**Can I use it without an API key?**
+Yes. Layers 1 (keyword) and 2 (local BGE model) run entirely offline. The LLM layer is optional.
 
-**没 API Key 能用？**
-能。关键词和本地语义离线跑。
+**How do I know a skill was loaded?**
+The AI's reply starts with `>> ⚡ Skill loaded: skill-name`. No line = nothing loaded.
 
-**怎么关？**
-`--skill-off`，`--skill-on` 重开。
+**How do I turn it off?**
+Type `--skill-off` in chat. Type `--skill-on` to re-enable. Perfect for theory discussions where you don't want skills injected.
+
+**What platforms are supported?**
+Windows, macOS, Linux. Python 3.10+.
+
+**I added a new skill. Do I need to restart CC?**
+No. Just run `python build_vector_index.py` after editing skills.json.
 
 ---
 
