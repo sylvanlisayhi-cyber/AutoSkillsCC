@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bilingual vector compiler — English + Chinese embeddings for skill routing."""
+"""AutoSkillsCC Bilingual vector compiler — English + Chinese embeddings for skill routing."""
 import json, sys
 from pathlib import Path
 
@@ -80,13 +80,24 @@ def main():
     size_kb = VECTOR_DB_ZH.stat().st_size // 1024
     print(C['G'] + f'      Saved: {VECTOR_DB_ZH.name}  shape={emb_zh.shape}  {size_kb}KB' + C['X'])
 
+    # Precompute skill-skill similarity matrices for fast MMR
+    print(C['C'] + '\n[5/5] Precomputing similarity matrices...' + C['X'])
+    sim_en = emb_en @ emb_en.T
+    sim_zh = emb_zh @ emb_zh.T
+    cache_dir = DIR_PATH / 'cache'
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    np.save(cache_dir / 'skill_sim_en.npy', sim_en)
+    np.save(cache_dir / 'skill_sim_zh.npy', sim_zh)
+    print(C['G'] + f'      Saved: skill_sim_en.npy  shape={sim_en.shape}' + C['X'])
+    print(C['G'] + f'      Saved: skill_sim_zh.npy  shape={sim_zh.shape}' + C['X'])
+
     # Clean legacy single-index file
     legacy = DIR_PATH / 'skills_vectors.npy'
     if legacy.exists():
         legacy.unlink()
         print(C['Y'] + '      Removed legacy: skills_vectors.npy' + C['X'])
 
-    print(C['G'] + '\n[v] Done! Bilingual vector index ready.' + C['X'])
+    print(C['G'] + '\n[v] Done! Bilingual vector index + similarity matrices ready.' + C['X'])
     print(C['Y'] + '    Re-run this script whenever you add/modify skills.' + C['X'])
 
 

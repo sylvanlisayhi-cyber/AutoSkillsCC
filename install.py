@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SkillRouter Installer — One command setup for automatic skill routing in Claude Code.
+"""AutoSkillsCC Installer — One command setup for automatic skill routing in Claude Code.
 
 What it does:
   1. Checks for --bare mode in your startup scripts and auto-fixes it
@@ -9,13 +9,13 @@ What it does:
   5. Writes Claude Code hook configuration to settings.json
 
 Usage:
-  git clone https://github.com/sylvanlisayhi-cyber/SkillRouter.git
-  cd SkillRouter
+  git clone https://github.com/sylvanlisayhi-cyber/AutoSkillsCC.git
+  cd AutoSkillsCC
   pip install -r requirements.txt
   python install.py
   # Restart Claude Code — Done!
 """
-import json, sys, subprocess, os, re, shutil, io
+import json, sys, subprocess, os, re, shutil, io, argparse
 from pathlib import Path
 
 if sys.version_info < (3, 10):
@@ -23,8 +23,11 @@ if sys.version_info < (3, 10):
     sys.exit(1)
 
 if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+    for _s in (sys.stdout, sys.stderr):
+        try:
+            _s.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
 
 SETTINGS     = Path.home() / '.claude' / 'settings.json'
 HOOK_SCRIPT  = Path(__file__).parent / 'hooks' / 'recommend.py'
@@ -278,11 +281,17 @@ def detect_skills_root():
     return None
 
 def scan_skills(root):
+    """Recursively scan for SKILL.md files. Supports both flat and nested layouts:
+    skills/name/SKILL.md         → name = directory name
+    skills/category/name/SKILL.md → name = leaf directory name
+    """
+    seen = set()
     entries = []
-    for d in sorted(root.iterdir()):
-        if not d.is_dir() or not (d / 'SKILL.md').exists():
+    for f in sorted(root.rglob('SKILL.md')):
+        name = f.parent.name
+        if name in seen:
             continue
-        name = d.name
+        seen.add(name)
         if name in SKILL_DB:
             desc, kw = SKILL_DB[name]
         else:
@@ -334,31 +343,66 @@ def write_settings():
         'hooks': [{'type': 'command', 'command': hook_cmd, 'timeout': 30}]
     }]
 
-    # Add CC custom commands (type --skill-xxx directly in dialog)
+    # Add CC custom commands for --skill-* magic commands
+    s.setdefault('commands', {})
+    s['commands']['skillstatus'] = {
+        'description': 'Show AutoSkillsCC status',
+        'prompt': '--skill-status'
+    }
+    s['commands']['skilllist'] = {
+        'description': 'List all registered skills',
+        'prompt': '--skill-list'
+    }
+    s['commands']['skillon'] = {
+        'description': 'Enable auto-loading of skills',
+        'prompt': '--skill-on'
+    }
+    s['commands']['skilloff'] = {
+        'description': 'Disable auto-loading of skills',
+        'prompt': '--skill-off'
+    }
+    s['commands']['skilldebug'] = {
+        'description': 'Show AutoSkillsCC diagnostic info',
+        'prompt': '--skill-debug'
+    }
 
     SETTINGS.write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding='utf-8')
 
 # ═══ Main ═══════════════════════════════════════════════════════════════════
 
 def main():
+    parser = argparse.ArgumentParser(description='AutoSkillsCC Installer')
+    parser.add_argument('--refresh', action='store_true',
+                        help='Refresh skills.json and rebuild vector index only (skip bare check & hook config)')
+    args = parser.parse_args()
+
     print('=' * 55)
-    print('  SkillRouter Installer — Smart Skill Auto-Loader')
+    print('  AutoSkillsCC Installer — Smart Skill Auto-Loader')
     print('=' * 55)
     print(f'  Python: {sys.executable}')
 
-    if not HOOK_SCRIPT.exists():
-        print(f'\n[x] Hook script not found: {HOOK_SCRIPT}')
-        print('    Make sure you cloned the full repository.')
-        sys.exit(1)
+    if args.refresh:
+        print('\n[*] --refresh mode: updating skills.json and rebuilding vectors...')
+        # Clear stale caches
+        cache_dir = Path(__file__).parent / 'cache'
+        if cache_dir.is_dir():
+            import shutil as _shutil
+            _shutil.rmtree(cache_dir)
+            print('[*] Cleared cache/ directory')
+    else:
+        if not HOOK_SCRIPT.exists():
+            print(f'\n[x] Hook script not found: {HOOK_SCRIPT}')
+            print('    Make sure you cloned the full repository.')
+            sys.exit(1)
 
-    # ── Step 0: Bare mode check ──
-    check_and_fix_bare()
+        # ── Step 0: Bare mode check ──
+        check_and_fix_bare()
 
-    # ── Step 1: Dependencies ──
-    if not check_numpy():
-        print('[x] numpy is required. Install it first:')
-        print('    pip install -r requirements.txt')
-        sys.exit(1)
+        # ── Step 1: Dependencies ──
+        if not check_numpy():
+            print('[x] numpy is required. Install it first:')
+            print('    pip install -r requirements.txt')
+            sys.exit(1)
 
     has_st = check_sentence_transformers()
 
@@ -393,8 +437,9 @@ def main():
     build_vector_index()
 
     # ── Step 4: Write hook config ──
-    write_settings()
-    print(f'\n[v] Hook installed to: {SETTINGS}')
+    if not args.refresh:
+        write_settings()
+        print(f'\n[v] Hook installed to: {SETTINGS}')
 
     # ── Summary ──
     keyword_ok = 'Yes'
@@ -409,7 +454,11 @@ def main():
     print(f'{"─" * 55}')
 
     n = len(entries) if entries else 18
-    print(f'''
+    if args.refresh:
+        print(f'\n✅ Refresh complete — {n} skills registered, vectors rebuilt.')
+        print('   No restart needed — changes take effect immediately.')
+    else:
+        print(f'''
 ╔══════════════════════════════════════════════════════════════╗
 ║  ✅  INSTALL COMPLETE                                        ║
 ╠══════════════════════════════════════════════════════════════╣
@@ -425,12 +474,12 @@ def main():
 ║  关键是不要 --bare。模型在 settings.json 里配置。             ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝''')
-    print(f'  Commands (type in CC dialog):')
-    print(f'    --skill-status   View status ({n} skills)')
-    print(f'    --skill-list     List all skills')
-    print(f'    --skill-debug    Full diagnostic')
-    print(f'    --skill-off      Disable auto-loading')
-    print(f'    --skill-on       Re-enable auto-loading')
+        print(f'  Commands (type in CC dialog):')
+        print(f'    --skill-status   View status ({n} skills)')
+        print(f'    --skill-list     List all skills')
+        print(f'    --skill-debug    Full diagnostic')
+        print(f'    --skill-off      Disable auto-loading')
+        print(f'    --skill-on       Re-enable auto-loading')
 
 
 if __name__ == '__main__':
